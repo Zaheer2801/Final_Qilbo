@@ -1,0 +1,2 @@
+override_id,product_id,product_name,category,category_minimum_pct,requested_margin_pct,approved_margin_pct,reason,requested_by,owner_approved,status,date,note
+MO-001,P015,Grey Goose 750ml,Vodka,30,25,40,"Slow-moving stock, owner wants to clear inventory before it ages further",ai_agent,TRUE,approved_countered,2026-08-05,"Resolved above the category floor - this is a historical record of the request, not an active override. Grey Goose's floor remains the plain 30% Vodka minimum going forward."

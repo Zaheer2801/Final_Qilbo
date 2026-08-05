@@ -1,0 +1,5 @@
+po_id,product_id,product_name,qty_requested,unit_cost
+PO-5003,P011,Don Julio Blanco 750ml,12,32.00
+PO-5004,P015,Grey Goose 750ml,12,26.00
+PO-5005,P004,Hennessy VS 750ml,12,38.50
+PO-5006,P010,Patron Silver 750ml,12,39.00

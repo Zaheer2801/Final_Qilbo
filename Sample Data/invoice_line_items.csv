@@ -1,0 +1,5 @@
+invoice_id,product_id,product_name,qty,unit_cost,expiry_date,expiry_source,batch_lot
+INV-3001,P001,Hennessy VS 50ml,48,4.10,,not_applicable,HN-2404-A
+INV-3001,P005,Remy Martin VSOP 50ml,48,4.60,,not_applicable,RM-2403-A
+INV-3001,P008,Patron Silver 50ml,48,4.90,,not_applicable,PT-2405-A
+INV-3001,P016,Baileys Irish Cream 750ml,12,14.00,,MISSING - needs vendor follow-up,BY-2406-A

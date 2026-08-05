@@ -1,0 +1,7 @@
+po_id,vendor_id,created_by,owner_approved,status,order_date,notes
+PO-5001,V001,ai_agent,TRUE,confirmed,2026-07-14,"Approved same day - routine monthly restock"
+PO-5002,V002,ai_agent,TRUE,confirmed,2026-07-17,"Approved same day - Tito's/Don Julio restock"
+PO-5003,V002,ai_agent,TRUE,confirmed,2026-08-05,"Don Julio Blanco 750ml at 6 units, below reorder point of 10. Owner approved 2026-08-05. [SIMULATED] Vendor call to Republic National - order confirmed in full, 12 units."
+PO-5004,V002,ai_agent,FALSE,rejected_by_owner,,"Grey Goose 750ml at 8 units, below reorder point of 10. Rejected by Owner 2026-08-05 - not proceeding."
+PO-5005,V001,ai_agent,FALSE,rejected_by_owner,,"Hennessy VS 750ml at 9 units, below reorder point of 10. Rejected by Owner 2026-08-05 - not proceeding."
+PO-5006,V001,ai_agent,TRUE,confirmed_backorder,2026-08-05,"Patron Silver 750ml at 11 units, below reorder point of 12. Owner approved 2026-08-05. [SIMULATED] Vendor call to Southern Glazer's - order confirmed but on backorder 5 days, expected fulfillment 2026-08-10."

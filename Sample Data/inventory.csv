@@ -1,0 +1,19 @@
+product_id,product_name,brand,category,size,uom,qty_on_hand,reorder_point,purchase_price,selling_price,target_margin_pct,expiry_date,expiry_source,batch_lot,vendor_id
+P001,Hennessy VS,Hennessy,Cognac,50ml,bottle,86,40,4.10,7.99,48,,not_applicable,HN-2404-A,V001
+P002,Hennessy VS,Hennessy,Cognac,100ml,bottle,52,30,7.80,14.99,48,,not_applicable,HN-2404-B,V001
+P003,Hennessy VS,Hennessy,Cognac,375ml,bottle,24,15,22.00,39.99,45,,not_applicable,HN-2404-C,V001
+P004,Hennessy VS,Hennessy,Cognac,750ml,bottle,9,10,38.50,64.99,40,,not_applicable,HN-2404-D,V001
+P005,Remy Martin VSOP,Remy Martin,Cognac,50ml,bottle,71,40,4.60,8.99,48,,not_applicable,RM-2403-A,V001
+P006,Remy Martin VSOP,Remy Martin,Cognac,200ml,bottle,38,20,15.20,27.99,45,,not_applicable,RM-2403-B,V001
+P007,Remy Martin VSOP,Remy Martin,Cognac,750ml,bottle,7,10,46.00,79.99,40,,not_applicable,RM-2403-C,V001
+P008,Patron Silver,Patron,Tequila,50ml,bottle,64,35,4.90,9.49,48,,not_applicable,PT-2405-A,V001
+P009,Patron Silver,Patron,Tequila,375ml,bottle,29,20,21.00,37.99,45,,not_applicable,PT-2405-B,V001
+P010,Patron Silver,Patron,Tequila,750ml,bottle,11,12,39.00,64.99,40,,not_applicable,PT-2405-C,V001
+P011,Don Julio Blanco,Don Julio,Tequila,750ml,bottle,6,10,32.00,54.99,42,,not_applicable,DJ-2402-A,V002
+P012,Tito's Handmade Vodka,Tito's,Vodka,50ml,bottle,58,30,2.60,5.99,52,,not_applicable,TT-2405-A,V002
+P013,Tito's Handmade Vodka,Tito's,Vodka,375ml,bottle,33,20,10.40,19.99,48,,not_applicable,TT-2405-B,V002
+P014,Tito's Handmade Vodka,Tito's,Vodka,750ml,bottle,14,12,18.50,32.99,42,,not_applicable,TT-2405-C,V002
+P015,Grey Goose,Grey Goose,Vodka,750ml,bottle,8,10,26.00,43.33,40,,not_applicable,GG-2401-A,V002
+P016,Baileys Irish Cream,Baileys,Cream Liqueur,750ml,bottle,10,8,14.00,24.99,44,2026-11-15,invoice,BY-2406-A,V001
+P017,Corona Extra 6-pack,Corona,Beer,6-pack,pack,40,20,7.50,12.99,42,2026-09-01,invoice,CE-2406-B,V003
+P018,Modelo Especial 6-pack,Modelo,Beer,6-pack,pack,36,20,7.80,12.99,40,2026-09-10,invoice,MD-2406-C,V003

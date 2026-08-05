@@ -1,0 +1,5 @@
+invoice_id,vendor_id,invoice_date,status,total_amount,source,notes
+INV-3001,V001,2026-07-15,approved,1284.50,gmail,"Monthly Hennessy/Remy/Patron restock - all line items had expiry data except Baileys. [SIMULATED] Vendor follow-up sent to Angela Ruiz 2026-08-05 requesting expiry/best-by date for Baileys batch BY-2406-A - awaiting response."
+INV-3002,V002,2026-07-18,approved,642.00,gmail,"Tito's and Don Julio restock"
+INV-3003,V003,2026-07-22,pending_review,398.20,gmail,"Corona/Modelo restock - awaiting Owner review, just landed in Gmail"
+INV-3004,V001,2026-07-29,pending_review,215.60,gmail,"Small Hennessy 50ml top-up order - awaiting Owner review"

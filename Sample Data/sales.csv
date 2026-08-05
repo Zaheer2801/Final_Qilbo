@@ -1,0 +1,31 @@
+sale_id,sale_date,product_id,product_name,size,qty,unit_price,payment_method
+S1001,2026-07-20,P001,Hennessy VS,50ml,3,7.99,card
+S1002,2026-07-20,P008,Patron Silver,50ml,2,9.49,cash
+S1003,2026-07-21,P012,Tito's Handmade Vodka,50ml,4,5.99,card
+S1004,2026-07-21,P005,Remy Martin VSOP,50ml,2,8.99,card
+S1005,2026-07-21,P002,Hennessy VS,100ml,1,14.99,cash
+S1006,2026-07-22,P008,Patron Silver,50ml,3,9.49,card
+S1007,2026-07-22,P012,Tito's Handmade Vodka,50ml,2,5.99,cash
+S1008,2026-07-22,P004,Hennessy VS,750ml,1,64.99,card
+S1009,2026-07-23,P009,Patron Silver,375ml,1,37.99,card
+S1010,2026-07-23,P001,Hennessy VS,50ml,5,7.99,cash
+S1011,2026-07-23,P013,Tito's Handmade Vodka,375ml,1,19.99,card
+S1012,2026-07-24,P008,Patron Silver,50ml,2,9.49,card
+S1013,2026-07-24,P006,Remy Martin VSOP,200ml,1,27.99,card
+S1014,2026-07-24,P012,Tito's Handmade Vodka,50ml,3,5.99,cash
+S1015,2026-07-25,P001,Hennessy VS,50ml,2,7.99,card
+S1016,2026-07-25,P010,Patron Silver,750ml,1,64.99,card
+S1017,2026-07-25,P017,Corona Extra 6-pack,6-pack,4,12.99,cash
+S1018,2026-07-26,P005,Remy Martin VSOP,50ml,3,8.99,card
+S1019,2026-07-26,P008,Patron Silver,50ml,3,9.49,cash
+S1020,2026-07-26,P011,Don Julio Blanco,750ml,1,54.99,card
+S1021,2026-07-27,P012,Tito's Handmade Vodka,50ml,2,5.99,card
+S1022,2026-07-27,P002,Hennessy VS,100ml,2,14.99,cash
+S1023,2026-07-27,P018,Modelo Especial 6-pack,6-pack,3,12.99,card
+S1024,2026-07-28,P001,Hennessy VS,50ml,4,7.99,card
+S1025,2026-07-28,P008,Patron Silver,50ml,2,9.49,cash
+S1026,2026-07-28,P015,Grey Goose,750ml,1,44.99,card
+S1027,2026-07-29,P005,Remy Martin VSOP,50ml,2,8.99,card
+S1028,2026-07-29,P012,Tito's Handmade Vodka,50ml,3,5.99,cash
+S1029,2026-07-29,P009,Patron Silver,375ml,1,37.99,card
+S1030,2026-07-30,P001,Hennessy VS,50ml,3,7.99,card

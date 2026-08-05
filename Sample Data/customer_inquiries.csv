@@ -1,0 +1,15 @@
+inquiry_id,timestamp,caller_phone,type,product_asked,in_stock,whatsapp_alert_sent
+INQ-9001,2026-07-24 11:15,555-822-1190,availability,Casamigos Reposado,FALSE,FALSE
+INQ-9002,2026-07-25 16:40,555-822-4471,availability,Casamigos Reposado,FALSE,FALSE
+INQ-9003,2026-07-26 13:05,555-822-9012,preorder,Don Julio Blanco 750ml,TRUE,FALSE
+INQ-9004,2026-07-27 10:22,555-822-3350,availability,Casamigos Reposado,FALSE,TRUE
+INQ-9005,2026-07-27 18:50,555-822-7761,availability,Hennessy VS 50ml,TRUE,FALSE
+INQ-9006,2026-07-28 12:30,555-822-2209,availability,1800 Coconut Tequila,FALSE,FALSE
+INQ-9007,2026-07-29 09:15,555-822-8843,availability,Casamigos Reposado,FALSE,FALSE
+INQ-9008,2026-07-29 17:05,555-822-1190,availability,1800 Coconut Tequila,FALSE,FALSE
+INQ-9009,2026-08-05 09:00,555-822-5510,availability,Tito's Handmade Vodka 50ml,TRUE,FALSE
+INQ-9010,2026-08-05 09:12,555-822-6634,availability,Casamigos Reposado,FALSE,FALSE
+INQ-9011,2026-08-05 09:25,555-822-7002,preorder,Don Julio Blanco 750ml,TRUE,FALSE
+INQ-9012,2026-08-05 09:45,555-822-8891,availability,Hennessy VS (size unspecified - clarification requested),unresolved,FALSE
+INQ-9013,2026-08-05 09:55,555-822-1123,general_question,holiday hours (Labor Day),not_applicable,FALSE
+INQ-9014,2026-08-05 10:05,555-822-9945,complaint,Grey Goose 750ml - broken seal / refund requested,not_applicable,FALSE

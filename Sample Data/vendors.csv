@@ -1,0 +1,5 @@
+vendor_id,vendor_name,account_number,contact_name,contact_phone,contact_email,category,payment_terms
+V001,Southern Glazer's Wine & Spirits,SGWS-44521,Angela Ruiz,555-201-3344,angela.ruiz@sgws-demo.com,Primary distributor - spirits/wine,Net 15
+V002,Republic National Distributing,RNDC-88732,Tom Hale,555-201-9981,tom.hale@rndc-demo.com,Secondary distributor - spirits,Net 15
+V003,Coastal Beverage Supply,CBS-11209,Priya Nair,555-201-4470,priya.nair@coastalbev-demo.com,Beer/mixers/non-alc,Net 30
+V004,Local Ice & Party Supply,LIP-00456,Danny Osei,555-201-7723,danny@localice-demo.com,"Ice, cups, party supplies",Net 7

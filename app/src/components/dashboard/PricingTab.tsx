@@ -2,9 +2,21 @@ import { useState } from "react";
 import type { AppState, OverrideStatus } from "../../types";
 import { currentMargin, marginFloorFor, round2 } from "../../lib/businessLogic";
 import { btnSmall, card, inputCls, Tag } from "../ui";
+import { HoverableProductName } from "./ProductThumb";
+import { titleCase } from "../../lib/format";
 
-export default function PricingTab({ state, updateState }: { state: AppState; updateState: (updater: (s: AppState) => AppState) => void }) {
-  const [overrideForm, setOverrideForm] = useState({ productId: "", requestedMargin: "", reason: "" });
+export default function PricingTab({
+  state,
+  updateState,
+}: {
+  state: AppState;
+  updateState: (updater: (s: AppState) => AppState) => void;
+}) {
+  const [overrideForm, setOverrideForm] = useState({
+    productId: "",
+    requestedMargin: "",
+    reason: "",
+  });
 
   // Approval-gated: this only ever creates a `pending` override request. Nothing
   // here changes a live price — see pricing-intelligence.md's override workflow.
@@ -28,7 +40,12 @@ export default function PricingTab({ state, updateState }: { state: AppState; up
   }
 
   function decide(id: string, status: OverrideStatus, approvedMargin: string) {
-    updateState((s) => ({ ...s, marginOverrides: s.marginOverrides.map((o) => (o.id === id ? { ...o, status, approvedMargin } : o)) }));
+    updateState((s) => ({
+      ...s,
+      marginOverrides: s.marginOverrides.map((o) =>
+        o.id === id ? { ...o, status, approvedMargin } : o,
+      ),
+    }));
   }
 
   return (
@@ -48,17 +65,29 @@ export default function PricingTab({ state, updateState }: { state: AppState; up
           <tbody>
             {state.products.map((p) => {
               const cm = round2(currentMargin(p));
-              const { floor, source } = marginFloorFor(p, state.marginPolicy, state.marginOverrides);
+              const { floor, source } = marginFloorFor(
+                p,
+                state.marginPolicy,
+                state.marginOverrides,
+              );
               const ok = cm >= floor;
               return (
                 <tr key={p.id} className="border-b border-stone-50">
                   <td className="py-1.5">
-                    {p.name} {p.size}
+                    <HoverableProductName product={p}>
+                      {titleCase(p.name)} {p.size}
+                    </HoverableProductName>
                   </td>
                   <td>{cm}%</td>
                   <td>{floor}%</td>
                   <td className="text-xs text-stone-500">{source}</td>
-                  <td>{ok ? <Tag tone="green">OK</Tag> : <Tag tone="red">below floor</Tag>}</td>
+                  <td>
+                    {ok ? (
+                      <Tag tone="green">OK</Tag>
+                    ) : (
+                      <Tag tone="red">below floor</Tag>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -67,13 +96,21 @@ export default function PricingTab({ state, updateState }: { state: AppState; up
       </div>
 
       <div className={card}>
-        <h3 className="text-sm font-semibold mb-3">Request a margin override</h3>
+        <h3 className="text-sm font-semibold mb-3">
+          Request a margin override
+        </h3>
         <div className="grid grid-cols-3 gap-2 mb-2">
-          <select className={inputCls} value={overrideForm.productId} onChange={(e) => setOverrideForm({ ...overrideForm, productId: e.target.value })}>
+          <select
+            className={inputCls}
+            value={overrideForm.productId}
+            onChange={(e) =>
+              setOverrideForm({ ...overrideForm, productId: e.target.value })
+            }
+          >
             <option value="">Select product</option>
             {state.products.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} {p.size}
+                {titleCase(p.name)} {p.size}
               </option>
             ))}
           </select>
@@ -81,9 +118,21 @@ export default function PricingTab({ state, updateState }: { state: AppState; up
             className={inputCls}
             placeholder="Requested margin %"
             value={overrideForm.requestedMargin}
-            onChange={(e) => setOverrideForm({ ...overrideForm, requestedMargin: e.target.value })}
+            onChange={(e) =>
+              setOverrideForm({
+                ...overrideForm,
+                requestedMargin: e.target.value,
+              })
+            }
           />
-          <input className={inputCls} placeholder="Reason" value={overrideForm.reason} onChange={(e) => setOverrideForm({ ...overrideForm, reason: e.target.value })} />
+          <input
+            className={inputCls}
+            placeholder="Reason"
+            value={overrideForm.reason}
+            onChange={(e) =>
+              setOverrideForm({ ...overrideForm, reason: e.target.value })
+            }
+          />
         </div>
         <button onClick={requestOverride} className={btnSmall}>
           Submit request
@@ -94,21 +143,47 @@ export default function PricingTab({ state, updateState }: { state: AppState; up
             {state.marginOverrides.map((o) => {
               const p = state.products.find((pr) => pr.id === o.productId);
               return (
-                <div key={o.id} className="flex items-center justify-between text-sm border-t border-stone-50 pt-2">
+                <div
+                  key={o.id}
+                  className="flex items-center justify-between text-sm border-t border-stone-50 pt-2"
+                >
                   <div>
-                    {p ? `${p.name} ${p.size}` : o.productId} — requested {o.requestedMargin}% ({o.reason})
+                    {p ? (
+                      <HoverableProductName product={p}>
+                        {titleCase(p.name)} {p.size}
+                      </HoverableProductName>
+                    ) : (
+                      o.productId
+                    )}{" "}
+                    — requested {o.requestedMargin}% ({o.reason})
                   </div>
                   <div className="flex items-center gap-2">
-                    <Tag tone={o.status === "approved" ? "green" : o.status === "rejected" ? "red" : "amber"}>
+                    <Tag
+                      tone={
+                        o.status === "approved"
+                          ? "green"
+                          : o.status === "rejected"
+                            ? "red"
+                            : "amber"
+                      }
+                    >
                       {o.status}
                       {o.approvedMargin ? ` @ ${o.approvedMargin}%` : ""}
                     </Tag>
                     {o.status === "pending" && (
                       <>
-                        <button onClick={() => decide(o.id, "approved", o.requestedMargin)} className={btnSmall}>
+                        <button
+                          onClick={() =>
+                            decide(o.id, "approved", o.requestedMargin)
+                          }
+                          className={btnSmall}
+                        >
                           Approve as requested
                         </button>
-                        <button onClick={() => decide(o.id, "rejected", "")} className={btnSmall}>
+                        <button
+                          onClick={() => decide(o.id, "rejected", "")}
+                          className={btnSmall}
+                        >
                           Reject
                         </button>
                       </>

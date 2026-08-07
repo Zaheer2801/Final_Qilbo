@@ -79,13 +79,17 @@ export interface MarginPolicyRow {
 export interface Product {
   id: string;
   name: string;
+  brand?: string; // optional — distinct from `name` for CSV imports that carry both (e.g. name "VS", brand "Hennessy")
   category: string;
-  size: string;
+  size: string; // free-form — "50ml", "750ml", "6-pack", "12oz", etc.
   qty: number;
   reorderPoint: number;
-  purchasePrice: number;
+  purchasePrice: number; // owner-only in principle — see InventoryTab's note on why that's just a label, not real access control, in this single-user prototype
   sellingPrice: number;
   expiryDate: string;
+  vendor?: string; // who this is procured from — optional, older/manually-added products may not have one on record
+  receivedDate?: string; // when the current stock actually arrived — drives "days on shelf"; optional for the same reason
+  imageUrl?: string; // optional — falls back to a placeholder icon when absent, never fabricated
 }
 
 export interface Sale {
@@ -133,6 +137,31 @@ export interface AlertItem {
   date: string;
 }
 
+// Predefined reasons for a manual quantity change — multi-select, so a
+// single count can be tagged e.g. "Stock take" + "Correction" at once.
+export const QTY_CHANGE_REASONS = [
+  "Stock take / physical count",
+  "Received shipment",
+  "Damaged / spoiled",
+  "Theft / shrinkage",
+  "Return to vendor",
+  "Correction (data entry error)",
+  "Other",
+] as const;
+export type QtyChangeReason = (typeof QTY_CHANGE_REASONS)[number];
+
+export interface QtyLogEntry {
+  id: string;
+  productId: string;
+  productName: string;
+  previousQty: number;
+  newQty: number;
+  changedBy: string; // free-text — no auth/staff accounts exist in this prototype, see about_me.md
+  reasons: QtyChangeReason[];
+  note?: string;
+  date: string;
+}
+
 export interface AppState {
   config: BusinessConfig;
   marginPolicy: MarginPolicyRow[];
@@ -143,6 +172,7 @@ export interface AppState {
   marginOverrides: MarginOverride[];
   alerts: AlertItem[];
   alertState: Record<string, number>;
+  qtyLog: QtyLogEntry[];
 }
 
 export interface ExpiryRisk {

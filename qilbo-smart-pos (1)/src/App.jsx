@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { AlertTriangle, Bell, DollarSign, LayoutDashboard, Loader2, Package, Phone, Receipt } from "lucide-react";
 import { emptyState } from "./lib/state";
 import { loadState, saveState, clearState } from "./lib/storage";
+import Landing from "./components/Landing";
 import Onboarding from "./components/Onboarding";
 import Overview from "./components/dashboard/Overview";
 import InventoryTab from "./components/dashboard/InventoryTab";
@@ -29,6 +30,7 @@ function initState() {
 function App() {
   const [state, setState] = useState(initState);
   const [tab, setTab] = useState("overview");
+  const [showLanding, setShowLanding] = useState(!loadState()?.config?.onboardingComplete);
 
   const updateState = useCallback((updater) => {
     setState((prev) => {
@@ -46,6 +48,7 @@ function App() {
     const fresh = emptyState();
     setState(fresh);
     clearState();
+    setShowLanding(true);
   }
 
   if (!state) {
@@ -54,6 +57,10 @@ function App() {
         <Loader2 className="animate-spin text-amber-800" size={28} />
       </div>
     );
+  }
+
+  if (showLanding) {
+    return <Landing onGetStarted={() => setShowLanding(false)} />;
   }
 
   if (!state.config.onboardingComplete) {

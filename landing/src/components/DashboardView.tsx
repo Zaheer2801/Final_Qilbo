@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, Receipt, DollarSign, AlertTriangle, Bell, Settings, ArrowLeft, Plus, CheckCircle, TrendingUp, AlertCircle } from "lucide-react";
+import { LayoutDashboard, Package, Receipt, DollarSign, AlertTriangle, Bell, Settings, ArrowLeft, Plus, CheckCircle, TrendingUp, AlertCircle, FileText, Upload, ShieldCheck } from "lucide-react";
+import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
 
 export type DashboardViewProps = {
   storeName?: string;
@@ -9,6 +10,7 @@ export type DashboardViewProps = {
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "inventory", label: "Inventory", icon: Package },
+  { id: "invoices", label: "Invoices & Intake", icon: FileText },
   { id: "procurement", label: "Procurement", icon: Receipt },
   { id: "pricing", label: "Pricing", icon: DollarSign },
   { id: "expiry", label: "Expiry", icon: AlertTriangle },
@@ -24,13 +26,55 @@ const INITIAL_PRODUCTS = [
   { id: "P105", name: "Macallan 12 Year Single Malt", brand: "Macallan", category: "Spirits & Liquor", size: "750ml", qty: 12, minMargin: 28, cost: 58.00, price: 84.99, expiry: "2029-01-01", status: "Healthy" },
 ];
 
-export default function DashboardView({ storeName = "Qilbo Smart POS", onBackToLanding }: DashboardViewProps) {
+export default function DashboardView({ storeName = "Discount Liquor #83954", onBackToLanding }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
   const [newProductQty, setNewProductQty] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
+  const [invoicesHistory, setInvoicesHistory] = useState([
+    {
+      id: "INV-523219",
+      vendor: "Wayne Densch, Inc.",
+      invoiceNo: "523219",
+      date: "2026-08-31",
+      totalNet: 1103.75,
+      linesCount: 6,
+      creditAlert: 31.45,
+      status: "Reconciled",
+    },
+  ]);
+
+  const handleCommitInvoice = (invNo: string, vendor: string, lines: InvoiceLineParsed[], credit: number) => {
+    const totalNet = lines.reduce((sum, l) => sum + l.lineNet, 0);
+    const newInv = {
+      id: `INV-${invNo}`,
+      vendor,
+      invoiceNo: invNo,
+      date: new Date().toISOString().split("T")[0],
+      totalNet: Number(totalNet.toFixed(2)),
+      linesCount: lines.length,
+      creditAlert: credit,
+      status: "Reconciled",
+    };
+    setInvoicesHistory([newInv, ...invoicesHistory]);
+
+    // Update stock levels from units received
+    lines.forEach((line) => {
+      if (line.unitsReceived > 0) {
+        setProducts((prev) => {
+          const match = prev.find((p) => p.name.toLowerCase().includes(line.description.split(" ")[0].toLowerCase()));
+          if (match) {
+            return prev.map((p) => (p.id === match.id ? { ...p, qty: p.qty + line.unitsReceived } : p));
+          }
+          return prev;
+        });
+      }
+    });
+  };
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,13 +119,16 @@ export default function DashboardView({ storeName = "Qilbo Smart POS", onBackToL
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" /> Live Telemetry
-          </span>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setShowInvoiceModal(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-100/90 text-amber-900 border border-amber-300/60 text-xs font-semibold hover:bg-amber-200 shadow-2xs transition-all cursor-pointer"
+          >
+            <Upload size={14} /> Upload Receipt / Invoice
+          </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900 shadow-sm transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900 shadow-xs transition-all cursor-pointer"
           >
             <Plus size={14} /> Add Product
           </button>
@@ -249,16 +296,93 @@ export default function DashboardView({ storeName = "Qilbo Smart POS", onBackToL
             </div>
           )}
 
-          {/* Other Tabs */}
-          {(activeTab === "procurement" || activeTab === "pricing" || activeTab === "expiry" || activeTab === "alerts" || activeTab === "settings") && (
-            <div className="bg-white rounded-2xl border border-[#171310]/10 p-8 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 mx-auto flex items-center justify-center font-bold">
-                Q
+          {/* Tab 3: Invoices & Intake */}
+          {activeTab === "invoices" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">Distributor Invoices & Receipt Intake</h2>
+                  <p className="text-xs text-ink/60 mt-0.5">Automated pack-structure parsing (e.g. Wayne Densch 6/4/16 CAN → 36 units at $5.24 unit cost)</p>
+                </div>
+                <button
+                  onClick={() => setShowInvoiceModal(true)}
+                  className="px-4 py-2.5 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Upload size={14} /> Upload New Invoice / Receipt
+                </button>
               </div>
-              <h3 className="font-bold text-base text-ink capitalize">{activeTab} Module Active</h3>
-              <p className="text-xs text-ink/60 max-w-md mx-auto">
-                Qilbo automated intelligence is monitoring {products.length} products for store <strong>{storeName}</strong>.
-              </p>
+
+              {/* Invoices Table & Credit Alerts */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-[#171310]/10 shadow-xs overflow-hidden">
+                  <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-ink">Recent Distributor Invoices</h3>
+                    <span className="text-xs text-amber-900 font-semibold">{invoicesHistory.length} Invoices Logged</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#FAF8F5] text-ink/60 border-b border-[#171310]/10">
+                        <tr>
+                          <th className="px-6 py-3 font-semibold">Invoice #</th>
+                          <th className="px-6 py-3 font-semibold">Vendor</th>
+                          <th className="px-6 py-3 font-semibold">Date</th>
+                          <th className="px-6 py-3 font-semibold">Lines</th>
+                          <th className="px-6 py-3 font-semibold">Reconciliation Net</th>
+                          <th className="px-6 py-3 font-semibold">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#171310]/5">
+                        {invoicesHistory.map((inv) => (
+                          <tr key={inv.id} className="hover:bg-amber-50/50 transition-colors">
+                            <td className="px-6 py-3.5 font-mono font-bold text-amber-900">{inv.invoiceNo}</td>
+                            <td className="px-6 py-3.5 font-semibold text-ink">{inv.vendor}</td>
+                            <td className="px-6 py-3.5 text-ink/60">{inv.date}</td>
+                            <td className="px-6 py-3.5 text-ink/70 font-medium">{inv.linesCount} items</td>
+                            <td className="px-6 py-3.5 font-bold text-ink">${inv.totalNet.toFixed(2)}</td>
+                            <td className="px-6 py-3.5">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                {inv.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Sidebar Cards for Credit Alerts & UPC Alias Mapping */}
+                <div className="space-y-4">
+                  <div className="bg-white p-5 rounded-2xl border border-amber-200 bg-amber-50/50 space-y-3">
+                    <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+                      <AlertTriangle size={18} className="text-amber-700" /> Credit-Owed Alerts
+                    </div>
+                    <p className="text-xs text-ink/70">
+                      Breakage on truck or non-delivered line items automatically generate credit-owed claims against distributors.
+                    </p>
+                    <div className="p-3 rounded-xl bg-white border border-amber-300 flex items-center justify-between text-xs">
+                      <div>
+                        <div className="font-bold text-ink">Wayne Densch #523219</div>
+                        <div className="text-[10px] text-amber-800 font-medium">-1 Breakage on Truck (MD 2020)</div>
+                      </div>
+                      <span className="font-bold text-amber-900 text-sm">$31.45</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-[#171310]/10 space-y-3">
+                    <div className="flex items-center gap-2 font-bold text-sm text-ink">
+                      <ShieldCheck size={18} className="text-emerald-700" /> UPC String & Alias Resolver
+                    </div>
+                    <p className="text-xs text-ink/70">
+                      Resolves duplicate POS items without altering transaction history.
+                    </p>
+                    <div className="p-3 rounded-xl bg-[#FAF8F5] border border-ink/10 text-[11px] font-mono text-ink/80 space-y-1">
+                      <div><strong className="text-ink">088004009373</strong> Fireball 100ml</div>
+                      <div><strong className="text-ink">088004040901</strong> Fireball 100ml (Mapped)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </main>
@@ -323,6 +447,12 @@ export default function DashboardView({ storeName = "Qilbo Smart POS", onBackToL
           </form>
         </div>
       )}
+      {/* Invoice & Receipt Intake Modal */}
+      <InvoiceIntakeModal
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+        onCommitInvoice={handleCommitInvoice}
+      />
     </div>
   );
 }

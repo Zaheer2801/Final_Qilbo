@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users, Printer, FileSpreadsheet, BarChart3, PieChart, TrendingUp, Layers } from "lucide-react";
+import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users, Printer, FileSpreadsheet, BarChart3, PieChart, TrendingUp, Layers, Link2, ShoppingCart, FileCheck, Send, Download } from "lucide-react";
 import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
 
 export type DashboardViewProps = {
@@ -27,6 +27,9 @@ const TABS = [
   { id: "daily_sales", label: "NRS Daily Sales Feed", icon: FileSpreadsheet },
   { id: "trendview", label: "TrendView Analytics", icon: BarChart3 },
   { id: "forecasting", label: "AI Demand & Reorders", icon: Cpu },
+  { id: "po_builder", label: "Distributor PO Builder", icon: ShoppingCart },
+  { id: "aliases", label: "UPC Alias Resolver", icon: Link2 },
+  { id: "eod_tax", label: "CPA Tax Audit Vault", icon: FileCheck },
   { id: "invoices", label: "Invoices & Intake", icon: FileText },
   { id: "overrides", label: "Margin Guardrails", icon: DollarSign },
   { id: "shifts", label: "Shift & Register Audit", icon: Users },
@@ -322,6 +325,46 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
       addLog("Product Deleted", `Removed ${name} (ID: ${id}) from store inventory`, "delete");
     }
   };
+
+  // UPC Alias Resolver Mappings (Collapses POS duplicates without editing history)
+  const [upcAliases] = useState([
+    {
+      primaryUpc: "088004009373",
+      aliasUpc: "088004040901",
+      primaryName: "Fireball Cinnamon Whisky 100ml",
+      aliasName: " Fireball 100ml (Leading Space POS Name)",
+      status: "Collapsed & Linked",
+    },
+    {
+      primaryUpc: "018200005428",
+      aliasUpc: "018200005429",
+      primaryName: "Busch Can 16 FL OZ 6/4/16",
+      aliasName: "Busch 16oz Can Singles Barcode",
+      status: "Collapsed & Linked",
+    },
+  ]);
+
+  // Distributor Purchase Orders (PO Builder)
+  const [draftPOs] = useState([
+    {
+      id: "PO-9041",
+      vendor: "Wayne Densch, Inc. (Sanford, FL)",
+      repName: "Dave Miller (A-B Rep)",
+      date: "2026-08-31",
+      itemsCount: 5,
+      estimatedCost: 890.50,
+      status: "Drafted by AI Engine",
+    },
+    {
+      id: "PO-9042",
+      vendor: "Southern Glazer's Wine & Spirits",
+      repName: "Jennifer Ross",
+      date: "2026-08-30",
+      itemsCount: 8,
+      estimatedCost: 1420.00,
+      status: "Sent to Rep",
+    },
+  ]);
 
   // Selected Category for TrendView Drilldown
   const [selectedTrendCategory, setSelectedTrendCategory] = useState<string>("Spirits & Liquor");
@@ -723,7 +766,147 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
             </div>
           )}
 
-          {/* Tab 3: NRS Daily Sales Feed */}
+          {/* Tab: Distributor PO Builder */}
+          {activeTab === "po_builder" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">Distributor Purchase Order (PO) Builder</h2>
+                  <p className="text-xs text-ink/60">Auto-drafts purchase orders based on AI demand forecasting and unit cost pack structures.</p>
+                </div>
+                <button className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-sm flex items-center gap-1.5 cursor-pointer">
+                  <Plus size={14} /> Draft New PO
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {draftPOs.map((po) => (
+                  <div key={po.id} className="bg-white p-6 rounded-2xl border border-ink/10 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-sm text-ink">{po.vendor}</h3>
+                          <span className="font-mono text-xs text-amber-900 font-bold bg-amber-100 px-2 py-0.5 rounded">{po.id}</span>
+                        </div>
+                        <p className="text-xs text-ink/60 mt-0.5">Rep: {po.repName} | Created: {po.date}</p>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                        po.status === "Sent to Rep" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"
+                      }`}>
+                        {po.status}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div><span className="text-ink/60 block">Line Items</span><strong>{po.itemsCount} SKUs</strong></div>
+                      <div><span className="text-ink/60 block">Estimated Cost</span><strong className="text-amber-950 font-bold">${po.estimatedCost.toFixed(2)}</strong></div>
+                    </div>
+
+                    <div className="pt-2 border-t border-ink/5 flex items-center justify-between">
+                      <button
+                        onClick={() => alert(`PO #${po.id} sent directly to ${po.repName}!`)}
+                        className="px-3.5 py-1.5 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900 flex items-center gap-1.5"
+                      >
+                        <Send size={13} /> Send PO to Vendor Rep
+                      </button>
+                      <button
+                        onClick={() => alert(`Downloaded PO #${po.id} PDF`)}
+                        className="px-3 py-1.5 rounded-lg border border-ink/15 text-xs font-semibold text-ink/70 hover:bg-black/5 flex items-center gap-1"
+                      >
+                        <Download size={13} /> Export PDF
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tab: UPC Alias Resolver */}
+          {activeTab === "aliases" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">UPC String Alias Resolver & Duplicate Collapser</h2>
+                  <p className="text-xs text-ink/60">Collapses duplicate POS barcodes (e.g. Fireball 100ml with leading space) into a single master product without altering transaction history.</p>
+                </div>
+                <span className="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                  <ShieldCheck size={14} /> History Preserved
+                </span>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-[#171310]/10 overflow-hidden shadow-xs">
+                <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between bg-[#FAF8F5]">
+                  <h3 className="font-bold text-sm text-ink">Active Linked UPC Mappings</h3>
+                  <span className="text-xs text-amber-900 font-semibold">{upcAliases.length} Mappings Active</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#FAF8F5] text-ink/60 border-b border-ink/10">
+                      <tr>
+                        <th className="px-6 py-3 font-semibold">Primary UPC (Master)</th>
+                        <th className="px-6 py-3 font-semibold">Primary Product Name</th>
+                        <th className="px-6 py-3 font-semibold">Alias UPC (Linked)</th>
+                        <th className="px-6 py-3 font-semibold">Alias POS Name</th>
+                        <th className="px-6 py-3 font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ink/5">
+                      {upcAliases.map((alias, idx) => (
+                        <tr key={idx} className="hover:bg-[#FAF8F5]">
+                          <td className="px-6 py-3.5 font-mono text-amber-900 font-bold">{alias.primaryUpc}</td>
+                          <td className="px-6 py-3.5 font-semibold text-ink">{alias.primaryName}</td>
+                          <td className="px-6 py-3.5 font-mono text-ink/60">{alias.aliasUpc}</td>
+                          <td className="px-6 py-3.5 text-ink/80">{alias.aliasName}</td>
+                          <td className="px-6 py-3.5">
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              {alias.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab: CPA Tax Audit Vault */}
+          {activeTab === "eod_tax" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">CPA Tax Audit Vault & Sales Tax Reports</h2>
+                  <p className="text-xs text-ink/60">Certified Florida state sales tax, cost of goods sold (COGS) deductions, and breakage credit compliance.</p>
+                </div>
+                <button
+                  onClick={() => alert("Exported certified CPA Tax Audit Package (.zip with CSVs & PDF Statements)")}
+                  className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-sm flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download size={14} /> Export CPA Audit Package
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-ink/10 shadow-xs space-y-2">
+                  <div className="text-xs text-ink/60 font-semibold">Florida Sales Tax Collected (7.0%)</div>
+                  <div className="text-2xl font-bold text-ink">$772.84</div>
+                  <div className="text-[11px] text-emerald-700 font-medium">Ready for monthly DOR filing</div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-ink/10 shadow-xs space-y-2">
+                  <div className="text-xs text-ink/60 font-semibold">Cost of Goods Sold (COGS)</div>
+                  <div className="text-2xl font-bold text-amber-950">$7,820.00</div>
+                  <div className="text-[11px] text-ink/50">Fully backed by distributor invoices</div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-ink/10 shadow-xs space-y-2">
+                  <div className="text-xs text-ink/60 font-semibold">Total Credit Owed Claims</div>
+                  <div className="text-2xl font-bold text-amber-900">$31.45</div>
+                  <div className="text-[11px] text-amber-800">Driver breakage deduction</div>
+                </div>
+              </div>
+            </div>
+          )}
           {activeTab === "daily_sales" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, Receipt, DollarSign, AlertTriangle, Bell, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar } from "lucide-react";
+import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users } from "lucide-react";
 import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
 
 export type DashboardViewProps = {
@@ -12,18 +12,23 @@ export type LogItem = {
   timestamp: string;
   action: string;
   details: string;
-  type: "add" | "edit" | "delete" | "invoice";
+  type: "add" | "edit" | "delete" | "invoice" | "override" | "outage";
 };
+
+const STORES = [
+  { id: "S83954", name: "Discount Liquor #83954 (Eustis, FL)" },
+  { id: "S83955", name: "Discount Liquor #83955 (Orlando, FL)" },
+  { id: "S000", name: "Central Warehouse HQ" },
+];
 
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "inventory", label: "Inventory", icon: Package },
+  { id: "forecasting", label: "AI Demand & Reorders", icon: Cpu },
   { id: "invoices", label: "Invoices & Intake", icon: FileText },
+  { id: "overrides", label: "Margin Guardrails", icon: DollarSign },
+  { id: "shifts", label: "Shift & Register Audit", icon: Users },
   { id: "activity", label: "Activity Log", icon: History },
-  { id: "procurement", label: "Procurement", icon: Receipt },
-  { id: "pricing", label: "Pricing", icon: DollarSign },
-  { id: "expiry", label: "Expiry", icon: AlertTriangle },
-  { id: "alerts", label: "Alerts", icon: Bell },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -46,6 +51,7 @@ const INITIAL_PRODUCTS: StoreProduct[] = [];
 
 export default function DashboardView({ storeName = "Discount Liquor #83954", onBackToLanding }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedStore, setSelectedStore] = useState(storeName);
   const [products, setProducts] = useState<StoreProduct[]>(INITIAL_PRODUCTS);
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
@@ -62,6 +68,41 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
   // Edit product modal state
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
 
+  // NRS Daily Reports Sync Status & Suspect Outages
+  const [nrsSyncReports] = useState([
+    { date: "2026-08-31", itemsCount: 42, rev: 1420.50, status: "healthy", note: "Synced cleanly" },
+    { date: "2026-08-30", itemsCount: 38, rev: 1210.10, status: "healthy", note: "Synced cleanly" },
+    { date: "2026-08-25", itemsCount: 0, rev: 0.00, status: "suspect", note: "POS Sync Outage - Flagged Suspect (Excluded from Trend)" },
+    { date: "2026-08-24", itemsCount: 0, rev: 0.00, status: "suspect", note: "POS Sync Outage - Flagged Suspect (Excluded from Trend)" },
+    { date: "2026-08-10", itemsCount: 0, rev: 0.00, status: "suspect", note: "POS Sync Outage - Flagged Suspect (Excluded from Trend)" },
+  ]);
+
+  // Price & Margin Override Log
+  const [marginOverrides] = useState([
+    {
+      id: "OVR-891",
+      cashier: "Marcus Vance (Register 1)",
+      item: "Busch 6/4/16 CAN",
+      floorMargin: "24%",
+      requestedPrice: "$4.50",
+      standardPrice: "$5.24",
+      status: "Approved",
+      reason: "Bulk Case Discount (4+ Cases)",
+      time: "2026-08-31 14:22",
+    },
+    {
+      id: "OVR-892",
+      cashier: "Sarah Jenkins (Register 2)",
+      item: "Cutwater Margarita 4pk",
+      floorMargin: "28%",
+      requestedPrice: "$8.00",
+      standardPrice: "$9.68",
+      status: "Pending Owner Review",
+      reason: "Damaged Outer Packaging",
+      time: "2026-08-31 16:05",
+    },
+  ]);
+
   // Real-time Activity Audit Log
   const [activityLog, setActivityLog] = useState<LogItem[]>([
     {
@@ -70,6 +111,13 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
       action: "System Initialized",
       details: "Store inventory initialized clean (0 products). Ready for invoice extraction.",
       type: "invoice",
+    },
+    {
+      id: "LOG-101",
+      timestamp: "10:14 AM",
+      action: "NRS POS Sync Evaluated",
+      details: "Aug 24 & Aug 25 POS outage emails automatically flagged as status = 'suspect' to protect sales trend lines.",
+      type: "outage",
     },
   ]);
 
@@ -191,8 +239,8 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
   return (
     <div className="min-h-screen bg-[#F7F5F0] text-[#171310] flex flex-col font-sans">
       {/* Top Header */}
-      <header className="bg-white border-b border-[#171310]/10 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-30">
-        <div className="flex items-center gap-4">
+      <header className="bg-white border-b border-[#171310]/10 px-6 py-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm sticky top-0 z-30">
+        <div className="flex items-center gap-3">
           <button
             onClick={onBackToLanding}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#171310]/15 text-xs font-semibold text-ink/80 hover:bg-black/5 transition-all"
@@ -200,15 +248,23 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
             <ArrowLeft size={14} /> Back to Landing Page
           </button>
           <div className="h-5 w-px bg-ink/15 hidden sm:block" />
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-amber-800 text-amber-50 flex items-center justify-center font-bold text-xs font-display">
-              Q
-            </div>
-            <span className="font-display font-bold text-base tracking-tight text-ink">{storeName}</span>
+
+          {/* Multi-Store Location Switcher */}
+          <div className="flex items-center gap-2 bg-[#FAF8F5] px-3 py-1.5 rounded-xl border border-ink/10">
+            <MapPin size={15} className="text-amber-800 shrink-0" />
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="bg-transparent text-xs font-bold text-ink focus:outline-none cursor-pointer"
+            >
+              {STORES.map((s) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 ml-auto md:ml-0">
           <button
             onClick={() => setShowInvoiceModal(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-100/90 text-amber-900 border border-amber-300/60 text-xs font-semibold hover:bg-amber-200 shadow-2xs transition-all cursor-pointer"
@@ -472,7 +528,195 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
             </div>
           )}
 
-          {/* Tab 3: Invoices & Intake */}
+          {/* Tab 3: AI Demand & Reorders */}
+          {activeTab === "forecasting" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">AI Demand Forecasting & Days of Cover Engine</h2>
+                  <p className="text-xs text-ink/60">Predicts stockout dates based on NRS sales velocity and flags suspect sync outages.</p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                  <Cpu size={14} /> AI Engine Active
+                </span>
+              </div>
+
+              {/* Demand Analytics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-ink/10 space-y-2">
+                  <div className="text-xs text-ink/60 font-semibold">Average Stock Cover</div>
+                  <div className="text-2xl font-bold text-ink">18.4 Days</div>
+                  <div className="text-[11px] text-emerald-700 font-medium">Optimal coverage threshold: 14-21 days</div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-ink/10 space-y-2">
+                  <div className="text-xs text-ink/60 font-semibold">Auto Purchase Orders Drafted</div>
+                  <div className="text-2xl font-bold text-amber-900">3 Orders Drafted</div>
+                  <div className="text-[11px] text-ink/50">Wayne Densch & DSI Distributors</div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-amber-200 bg-amber-50/50 space-y-2">
+                  <div className="text-xs text-amber-900 font-semibold flex items-center gap-1">
+                    <AlertTriangle size={14} /> POS Outage Emails Flagged
+                  </div>
+                  <div className="text-2xl font-bold text-amber-900">5 Outages Excluded</div>
+                  <div className="text-[11px] text-amber-800">Empty NRS reports marked status = 'suspect'</div>
+                </div>
+              </div>
+
+              {/* Suspect NRS POS Sync Reports Section */}
+              <div className="bg-white rounded-2xl border border-[#171310]/10 overflow-hidden shadow-xs">
+                <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-sm text-ink">Daily NRS Sales Feed Log (Auto Ingested)</h3>
+                    <p className="text-[11px] text-ink/60">Polls no-reply@nrsplus.com for daily sales CSVs.</p>
+                  </div>
+                  <span className="text-xs text-amber-900 font-bold font-mono">Rule: Preserves Leading Zero UPCs</span>
+                </div>
+                <div className="divide-y divide-ink/5">
+                  {nrsSyncReports.map((report, idx) => (
+                    <div key={idx} className="px-6 py-3.5 flex items-center justify-between hover:bg-[#FAF8F5]">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2.5 h-2.5 rounded-full ${report.status === "suspect" ? "bg-amber-500 animate-ping" : "bg-emerald-500"}`} />
+                        <div>
+                          <div className="font-bold text-xs text-ink">Daily Sales Report &lt;{report.date}&gt;</div>
+                          <div className="text-[11px] text-ink/60">{report.note}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          report.status === "suspect" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                        }`}>
+                          {report.status === "suspect" ? "SUSPECT OUTAGE" : "SYNCED"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 5: Margin Guardrails & Price Overrides */}
+          {activeTab === "overrides" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">Margin Guardrails & Cashier Override Approval Log</h2>
+                  <p className="text-xs text-ink/60">Enforces category floor margins and requires owner approval for register discount overrides.</p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1">
+                  <ShieldCheck size={14} /> Margin Locks Engaged
+                </span>
+              </div>
+
+              {/* Floor Margins Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-white border border-ink/10 space-y-1">
+                  <div className="text-xs text-ink/60 font-semibold">Spirits & Liquor Floor</div>
+                  <div className="text-xl font-bold text-amber-900">28.0% Minimum Margin</div>
+                </div>
+                <div className="p-4 rounded-xl bg-white border border-ink/10 space-y-1">
+                  <div className="text-xs text-ink/60 font-semibold">Wine & Champagne Floor</div>
+                  <div className="text-xl font-bold text-amber-900">35.0% Minimum Margin</div>
+                </div>
+                <div className="p-4 rounded-xl bg-white border border-ink/10 space-y-1">
+                  <div className="text-xs text-ink/60 font-semibold">Beer & Craft Brews Floor</div>
+                  <div className="text-xl font-bold text-amber-900">24.0% Minimum Margin</div>
+                </div>
+              </div>
+
+              {/* Overrides Table */}
+              <div className="bg-white rounded-2xl border border-[#171310]/10 overflow-hidden shadow-xs">
+                <div className="px-6 py-4 border-b border-[#171310]/10">
+                  <h3 className="font-bold text-sm text-ink">Register Price Override Audit Log</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#FAF8F5] text-ink/60 border-b border-ink/10">
+                      <tr>
+                        <th className="px-6 py-3 font-semibold">Override ID</th>
+                        <th className="px-6 py-3 font-semibold">Cashier / Register</th>
+                        <th className="px-6 py-3 font-semibold">Item</th>
+                        <th className="px-6 py-3 font-semibold">Req Price</th>
+                        <th className="px-6 py-3 font-semibold">Std Price</th>
+                        <th className="px-6 py-3 font-semibold">Reason</th>
+                        <th className="px-6 py-3 font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ink/5">
+                      {marginOverrides.map((ovr) => (
+                        <tr key={ovr.id} className="hover:bg-[#FAF8F5]">
+                          <td className="px-6 py-3.5 font-mono text-amber-900 font-bold">{ovr.id}</td>
+                          <td className="px-6 py-3.5 font-semibold text-ink">{ovr.cashier}</td>
+                          <td className="px-6 py-3.5 text-ink">{ovr.item}</td>
+                          <td className="px-6 py-3.5 font-bold text-amber-900">{ovr.requestedPrice}</td>
+                          <td className="px-6 py-3.5 text-ink/50 line-through">{ovr.standardPrice}</td>
+                          <td className="px-6 py-3.5 text-ink/70">{ovr.reason}</td>
+                          <td className="px-6 py-3.5">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              ovr.status === "Approved" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800 animate-pulse"
+                            }`}>
+                              {ovr.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 6: Shift & Cash Register Audit */}
+          {activeTab === "shifts" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">Staff, Shift & Register Drawer Audit</h2>
+                  <p className="text-xs text-ink/60">Live shift telemetry, cash floats, drawer balance reconciliation, and shrinkage audit.</p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex items-center gap-1">
+                  <Users size={14} /> 2 Registers Active
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-ink/10 space-y-4">
+                  <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+                    <div>
+                      <h3 className="font-bold text-sm text-ink">Register 01 (Front Counter)</h3>
+                      <p className="text-xs text-ink/60">Active Shift: Marcus Vance</p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">OPEN</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div><span className="text-ink/60 block">Opening Float</span><strong>$250.00</strong></div>
+                    <div><span className="text-ink/60 block">Cash Collected</span><strong className="text-emerald-800">$1,420.50</strong></div>
+                    <div><span className="text-ink/60 block">Card Sales</span><strong>$2,890.00</strong></div>
+                    <div><span className="text-ink/60 block">Drawer Balance</span><strong className="text-amber-900">$1,670.50</strong></div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-ink/10 space-y-4">
+                  <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+                    <div>
+                      <h3 className="font-bold text-sm text-ink">Register 02 (Drive-Thru / Express)</h3>
+                      <p className="text-xs text-ink/60">Active Shift: Sarah Jenkins</p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">OPEN</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div><span className="text-ink/60 block">Opening Float</span><strong>$250.00</strong></div>
+                    <div><span className="text-ink/60 block">Cash Collected</span><strong className="text-emerald-800">$890.00</strong></div>
+                    <div><span className="text-ink/60 block">Card Sales</span><strong>$1,640.25</strong></div>
+                    <div><span className="text-ink/60 block">Drawer Balance</span><strong className="text-amber-900">$1,140.00</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: Invoices & Intake */}
           {activeTab === "invoices" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -559,6 +803,19 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Settings Tab Fallback */}
+          {activeTab === "settings" && (
+            <div className="bg-white rounded-2xl border border-[#171310]/10 p-8 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 mx-auto flex items-center justify-center font-bold">
+                Q
+              </div>
+              <h3 className="font-bold text-base text-ink">Store Settings & Automation Rules</h3>
+              <p className="text-xs text-ink/60 max-w-md mx-auto">
+                Configured store: <strong>{selectedStore}</strong>. Automated NRS sales polling active every morning at 06:00 AM.
+              </p>
             </div>
           )}
         </main>

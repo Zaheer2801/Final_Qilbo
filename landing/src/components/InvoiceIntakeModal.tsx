@@ -20,7 +20,15 @@ export type InvoiceLineParsed = {
 export type InvoiceIntakeModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onCommitInvoice: (invoiceNo: string, vendorName: string, lines: InvoiceLineParsed[], creditAlert: number) => void;
+  onCommitInvoice: (
+    invoiceNo: string,
+    vendorName: string,
+    lines: InvoiceLineParsed[],
+    creditAlert: number,
+    originalFileUrl?: string,
+    originalFileName?: string,
+    fileType?: string
+  ) => void;
 };
 
 // Full Wayne Densch distributor invoice #523219 data (All 15 items reconciled to $1,103.75)
@@ -49,6 +57,8 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
   const [invoiceNo, setInvoiceNo] = useState("523219");
   const [parsedLines, setParsedLines] = useState<InvoiceLineParsed[]>(WAYNE_DENSCH_FULL_INVOICE_LINES);
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [originalFileUrl, setOriginalFileUrl] = useState<string>("");
+  const [fileType, setFileType] = useState<string>("application/pdf");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Manual entry single line form
@@ -76,6 +86,12 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
     if (!file) return;
 
     setUploadedFileName(file.name);
+    setFileType(file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/png"));
+
+    // Create persistent original file blob URL
+    const blobUrl = URL.createObjectURL(file);
+    setOriginalFileUrl(blobUrl);
+
     const reader = new FileReader();
 
     reader.onload = (event) => {
@@ -194,7 +210,15 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
   };
 
   const handleCommit = () => {
-    onCommitInvoice(invoiceNo, vendorName, parsedLines, calculateCreditAlerts());
+    onCommitInvoice(
+      invoiceNo,
+      vendorName,
+      parsedLines,
+      calculateCreditAlerts(),
+      originalFileUrl,
+      uploadedFileName || "Wayne_Densch_Invoice_523219.pdf",
+      fileType
+    );
     onClose();
   };
 

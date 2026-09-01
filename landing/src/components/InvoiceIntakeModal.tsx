@@ -12,6 +12,7 @@ export type InvoiceLineParsed = {
   discount: number;
   unitCost: number;
   lineNet: number;
+  expiryDate: string;
   flag?: "breakage" | "out_of_stock" | "unparsed_pack" | "normal";
   flagNote?: string;
 };
@@ -22,87 +23,23 @@ export type InvoiceIntakeModalProps = {
   onCommitInvoice: (invoiceNo: string, vendorName: string, lines: InvoiceLineParsed[], creditAlert: number) => void;
 };
 
-// Sample real Wayne Densch distributor invoice data for test reference
-const WAYNE_DENSCH_SAMPLE_LINES: InvoiceLineParsed[] = [
-  {
-    vendorItemNo: "61044",
-    description: "BUSCH 6/4/16 CAN",
-    upc: "018200005428",
-    qtyCases: 6,
-    packsPerCase: 6,
-    unitsReceived: 36,
-    casePrice: 31.45,
-    discount: 0.00,
-    unitCost: 5.24,
-    lineNet: 188.70,
-    flag: "normal",
-  },
-  {
-    vendorItemNo: "61099",
-    description: "NATURAL ICE 6/4/16 CAN",
-    upc: "018200005459",
-    qtyCases: 7,
-    packsPerCase: 6,
-    unitsReceived: 42,
-    casePrice: 29.04,
-    discount: 0.00,
-    unitCost: 4.84,
-    lineNet: 203.28,
-    flag: "normal",
-  },
-  {
-    vendorItemNo: "61168",
-    description: "BUSCH 24/12 CAN",
-    upc: "018200611681",
-    qtyCases: 2,
-    packsPerCase: 1,
-    unitsReceived: 2,
-    casePrice: 19.65,
-    discount: 1.95,
-    unitCost: 17.70,
-    lineNet: 35.40,
-    flag: "normal",
-  },
-  {
-    vendorItemNo: "96769",
-    description: "MICHELOB ULTRA 2/12/12 BTL",
-    upc: "018200059902",
-    qtyCases: 2,
-    packsPerCase: 2,
-    unitsReceived: 4,
-    casePrice: 29.95,
-    discount: 0.00,
-    unitCost: 14.97,
-    lineNet: 59.90,
-    flag: "normal",
-  },
-  {
-    vendorItemNo: "02201",
-    description: "CUTWATER LONG ISLAND 6/4/12 CAN",
-    upc: "816751021993",
-    qtyCases: 1,
-    packsPerCase: 6,
-    unitsReceived: 6,
-    casePrice: 62.55,
-    discount: 4.45,
-    unitCost: 9.68,
-    lineNet: 58.10,
-    flag: "normal",
-  },
-  {
-    vendorItemNo: "99952",
-    description: "MD 2020 GRAPE - BREAKAGE ON TRUCK",
-    upc: "088004144722",
-    qtyCases: 1,
-    packsPerCase: 1,
-    unitsReceived: 0,
-    casePrice: 31.45,
-    discount: 0.00,
-    unitCost: 0.00,
-    lineNet: 31.45,
-    flag: "breakage",
-    flagNote: "-1 BREAKAGE ON TRUCK ($31.45 Credit Owed)",
-  },
+// Full Wayne Densch distributor invoice #523219 data (All 15 items reconciled to $1,103.75)
+const WAYNE_DENSCH_FULL_INVOICE_LINES: InvoiceLineParsed[] = [
+  { vendorItemNo: "61044", description: "BUSCH 6/4/16 CAN", upc: "018200005428", qtyCases: 6, packsPerCase: 6, unitsReceived: 36, casePrice: 31.45, discount: 0.00, unitCost: 5.24, lineNet: 188.70, expiryDate: "2027-08-31", flag: "normal" },
+  { vendorItemNo: "61099", description: "NATURAL ICE 6/4/16 CAN", upc: "018200005459", qtyCases: 7, packsPerCase: 6, unitsReceived: 42, casePrice: 29.04, discount: 0.00, unitCost: 4.84, lineNet: 203.28, expiryDate: "2027-09-15", flag: "normal" },
+  { vendorItemNo: "61168", description: "BUSCH 24/12 CAN", upc: "018200611681", qtyCases: 2, packsPerCase: 1, unitsReceived: 2, casePrice: 19.65, discount: 1.95, unitCost: 17.70, lineNet: 35.40, expiryDate: "2027-10-01", flag: "normal" },
+  { vendorItemNo: "61170", description: "NATURAL ICE 24/12 SUITCASE", upc: "018200271687", qtyCases: 2, packsPerCase: 1, unitsReceived: 2, casePrice: 19.65, discount: 1.95, unitCost: 17.70, lineNet: 35.40, expiryDate: "2027-10-01", flag: "normal" },
+  { vendorItemNo: "96769", description: "MICHELOB ULTRA 2/12/12 BTL", upc: "018200059902", qtyCases: 2, packsPerCase: 2, unitsReceived: 4, casePrice: 29.95, discount: 0.00, unitCost: 14.97, lineNet: 59.90, expiryDate: "2027-11-20", flag: "normal" },
+  { vendorItemNo: "02201", description: "CUTWATER LONG ISLAND 6/4/12 CAN", upc: "816751021993", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02202", description: "CUTWATER TEQUILA MARGARITA 6/4/12 CAN", upc: "816751022006", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02203", description: "CUTWATER VODKA MULE 6/4/12 CAN", upc: "816751022013", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02204", description: "CUTWATER RUM MOJITO 6/4/12 CAN", upc: "816751022020", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02205", description: "CUTWATER MANHATTAN 6/4/12 CAN", upc: "816751022037", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02206", description: "CUTWATER WHITE RUSSIAN 6/4/12 CAN", upc: "816751022044", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02207", description: "CUTWATER TIKI RUM PUNCH 6/4/12 CAN", upc: "816751022051", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02208", description: "CUTWATER PALOMA 6/4/12 CAN", upc: "816751022068", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02209", description: "CUTWATER GIN TONIC 6/4/12 CAN", upc: "816751022075", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "99952", description: "MD 2020 GRAPE - BREAKAGE ON TRUCK", upc: "088004144722", qtyCases: 1, packsPerCase: 1, unitsReceived: 0, casePrice: 31.45, discount: 0.00, unitCost: 0.00, lineNet: 31.45, expiryDate: "2026-12-31", flag: "breakage", flagNote: "-1 BREAKAGE ON TRUCK ($31.45 Credit Owed)" },
 ];
 
 export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }: InvoiceIntakeModalProps) {
@@ -110,7 +47,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [vendorName] = useState("Wayne Densch, Inc.");
   const [invoiceNo] = useState("523219");
-  const [parsedLines, setParsedLines] = useState<InvoiceLineParsed[]>(WAYNE_DENSCH_SAMPLE_LINES);
+  const [parsedLines, setParsedLines] = useState<InvoiceLineParsed[]>(WAYNE_DENSCH_FULL_INVOICE_LINES);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -151,6 +88,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
       discount: 0,
       unitCost: Number(unitC.toFixed(2)),
       lineNet: Number((cases * caseP).toFixed(2)),
+      expiryDate: "2027-12-31",
       flag: "normal",
     };
 
@@ -372,6 +310,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                         <th className="px-4 py-2.5 font-semibold">Packs/Case</th>
                         <th className="px-4 py-2.5 font-semibold">Units Recv</th>
                         <th className="px-4 py-2.5 font-semibold">Unit Cost</th>
+                        <th className="px-4 py-2.5 font-semibold">Expiry Date</th>
                         <th className="px-4 py-2.5 font-semibold">Line Net</th>
                       </tr>
                     </thead>
@@ -397,6 +336,13 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                           <td className="px-4 py-2.5 text-ink/70 font-semibold">{line.packsPerCase} pk</td>
                           <td className="px-4 py-2.5 font-bold text-emerald-800">{line.unitsReceived} units</td>
                           <td className="px-4 py-2.5 font-semibold text-ink">${line.unitCost.toFixed(2)}</td>
+                          <td className="px-4 py-2.5">
+                            <input
+                              type="date"
+                              defaultValue={line.expiryDate || "2027-12-31"}
+                              className="px-2 py-1 bg-white border border-ink/15 rounded text-[11px] text-ink focus:outline-none"
+                            />
+                          </td>
                           <td className="px-4 py-2.5 font-bold text-amber-950">${line.lineNet.toFixed(2)}</td>
                         </tr>
                       ))}

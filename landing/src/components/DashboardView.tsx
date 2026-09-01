@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, Receipt, DollarSign, AlertTriangle, Bell, Settings, ArrowLeft, Plus, CheckCircle, TrendingUp, AlertCircle, FileText, Upload, ShieldCheck, Edit, Trash2, History } from "lucide-react";
+import { LayoutDashboard, Package, Receipt, DollarSign, AlertTriangle, Bell, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar } from "lucide-react";
 import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
 
 export type DashboardViewProps = {
@@ -54,6 +54,11 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
   const [showAddModal, setShowAddModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
+  // Filters & View Mode State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [viewStyle, setViewStyle] = useState<"table" | "tiles">("table");
+
   // Edit product modal state
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
 
@@ -95,21 +100,24 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
     };
     setInvoicesHistory([newInv, ...invoicesHistory]);
 
-    // Push extracted products to inventory
+    // Push all extracted products to inventory with expiry dates & category tag
     const newProducts: StoreProduct[] = [];
     lines.forEach((line) => {
       if (line.unitsReceived > 0) {
+        const cat = line.description.includes("CAN") || line.description.includes("BTL")
+          ? (line.description.includes("CUTWATER") ? "Spirits & Liquor" : "Beer & Craft Brews")
+          : "Spirits & Liquor";
         newProducts.push({
           id: `SKU-${line.upc.slice(-6)}`,
           name: line.description,
           brand: line.description.split(" ")[0],
-          category: "Spirits & Liquor",
+          category: cat,
           size: "Case/Pack",
           qty: line.unitsReceived,
           minMargin: 28,
           cost: line.unitCost,
           price: Number((line.unitCost * 1.45).toFixed(2)),
-          expiry: "2028-12-31",
+          expiry: line.expiryDate || "2027-12-31",
           status: "Healthy",
         });
       }
@@ -118,7 +126,7 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
     setProducts((prev) => [...newProducts, ...prev]);
     addLog(
       "Invoice Ingested & Approved",
-      `Extracted ${newProducts.length} line items from ${vendor} (Inv #${invNo}). Net total: $${totalNet.toFixed(2)}.`,
+      `Extracted ALL ${newProducts.length} line items from ${vendor} (Inv #${invNo}). Net total: $${totalNet.toFixed(2)}.`,
       "invoice"
     );
   };
@@ -167,6 +175,18 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
       addLog("Product Deleted", `Removed ${name} (ID: ${id}) from store inventory`, "delete");
     }
   };
+
+  // Filtered Products Logic
+  const categoriesList = ["All", ...Array.from(new Set(products.map((p) => p.category)))];
+
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCat = selectedCategory === "All" || p.category === selectedCategory;
+    return matchesSearch && matchesCat;
+  });
 
   return (
     <div className="min-h-screen bg-[#F7F5F0] text-[#171310] flex flex-col font-sans">
@@ -246,72 +266,86 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-          {/* Tab 1: Overview */}
-          {activeTab === "overview" && (
+          {/* Tab 1 & Tab 2: Overview & Inventory Views */}
+          {(activeTab === "overview" || activeTab === "inventory") && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-[#171310]/10 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-ink/60 text-xs font-medium">
-                    <span>Total SKU Count</span>
-                    <Package size={16} className="text-amber-800" />
-                  </div>
-                  <div className="text-2xl font-bold text-ink">{products.length} Items</div>
-                  <div className="text-[11px] text-emerald-700 flex items-center gap-1 font-medium">
-                    <TrendingUp size={12} /> 100% Margin Guardrails Active
-                  </div>
+              {/* Controls Bar: Search, Category Filter & View Switcher */}
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#171310]/10 shadow-2xs">
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <Search size={15} className="absolute left-3.5 top-2.5 text-ink/40" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by product name, SKU ID, or category..."
+                    className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-ink/10 rounded-xl text-xs text-ink focus:outline-none focus:border-amber-800"
+                  />
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-[#171310]/10 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-ink/60 text-xs font-medium">
-                    <span>Inventory Value</span>
-                    <DollarSign size={16} className="text-amber-800" />
-                  </div>
-                  <div className="text-2xl font-bold text-ink">$4,120.50</div>
-                  <div className="text-[11px] text-ink/50">Calculated from wholesale costs</div>
+                {/* Category Filter */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-ink/60 shrink-0">Category:</span>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-3 py-2 bg-[#FAF8F5] border border-ink/10 rounded-xl text-xs text-ink font-semibold focus:outline-none"
+                  >
+                    {categoriesList.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-[#171310]/10 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-ink/60 text-xs font-medium">
-                    <span>Low Stock Flags</span>
-                    <AlertCircle size={16} className="text-amber-600" />
-                  </div>
-                  <div className="text-2xl font-bold text-amber-700">2 Items</div>
-                  <div className="text-[11px] text-amber-800/80 font-medium">Reorder recommended</div>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl border border-[#171310]/10 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-ink/60 text-xs font-medium">
-                    <span>Expiry Risk Prevention</span>
-                    <CheckCircle size={16} className="text-emerald-600" />
-                  </div>
-                  <div className="text-2xl font-bold text-emerald-800">$1,850 Protected</div>
-                  <div className="text-[11px] text-emerald-700 font-medium">0 expired items</div>
+                {/* View Switcher (Table vs. Tiles) */}
+                <div className="flex items-center gap-1 bg-black/5 p-1 rounded-xl shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewStyle("table")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      viewStyle === "table" ? "bg-white text-amber-900 shadow-xs" : "text-ink/60 hover:text-ink"
+                    }`}
+                  >
+                    <List size={14} /> List View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewStyle("tiles")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      viewStyle === "tiles" ? "bg-white text-amber-900 shadow-xs" : "text-ink/60 hover:text-ink"
+                    }`}
+                  >
+                    <Grid size={14} /> Tiles View
+                  </button>
                 </div>
               </div>
 
-              {/* Product Table */}
-              <div className="bg-white rounded-2xl border border-[#171310]/10 shadow-xs overflow-hidden">
-                <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between">
-                  <h3 className="font-bold text-sm text-ink">Active Store Inventory</h3>
-                  <span className="text-xs text-ink/50">{products.length} Products Loaded</span>
-                </div>
-                {products.length === 0 ? (
-                  <div className="py-12 px-6 text-center space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 mx-auto flex items-center justify-center font-bold">
-                      0
-                    </div>
-                    <h4 className="font-bold text-sm text-ink">Inventory is Clean & Empty</h4>
-                    <p className="text-xs text-ink/60 max-w-sm mx-auto">
-                      No sample products! Upload a distributor receipt/invoice (PDF, Image, CSV) or click "+ Add Product" to populate your store.
-                    </p>
+              {/* Inventory Content Display */}
+              {filteredProducts.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-[#171310]/10 p-12 text-center space-y-3">
+                  <Package size={36} className="text-amber-800 mx-auto opacity-40" />
+                  <h4 className="font-bold text-base text-ink">No Products Match Your Filter</h4>
+                  <p className="text-xs text-ink/60 max-w-sm mx-auto">
+                    {products.length === 0
+                      ? "Your store inventory is empty. Upload a distributor receipt/invoice (PDF, Image, CSV) or click '+ Add Product'."
+                      : "Try clearing your search query or selecting 'All' categories."}
+                  </p>
+                  {products.length === 0 && (
                     <button
                       onClick={() => setShowInvoiceModal(true)}
-                      className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900 inline-flex items-center gap-1.5"
+                      className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900 inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Upload size={14} /> Upload First Invoice / Receipt
                     </button>
+                  )}
+                </div>
+              ) : viewStyle === "table" ? (
+                /* TABLE / LIST VIEW */
+                <div className="bg-white rounded-2xl border border-[#171310]/10 shadow-xs overflow-hidden">
+                  <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-ink">Active Store Inventory List</h3>
+                    <span className="text-xs text-amber-900 font-semibold">{filteredProducts.length} Items Displayed</span>
                   </div>
-                ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-[#FAF8F5] text-ink/60 border-b border-[#171310]/10">
@@ -321,18 +355,22 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
                           <th className="px-6 py-3 font-semibold">Category</th>
                           <th className="px-6 py-3 font-semibold">Stock Qty</th>
                           <th className="px-6 py-3 font-semibold">Price</th>
+                          <th className="px-6 py-3 font-semibold">Expiry Date</th>
                           <th className="px-6 py-3 font-semibold">Status</th>
                           <th className="px-6 py-3 font-semibold text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#171310]/5">
-                        {products.map((item) => (
+                        {filteredProducts.map((item) => (
                           <tr key={item.id} className="hover:bg-amber-50/50 transition-colors">
                             <td className="px-6 py-3.5 font-mono text-ink/60 font-medium">{item.id}</td>
                             <td className="px-6 py-3.5 font-semibold text-ink">{item.name}</td>
-                            <td className="px-6 py-3.5 text-ink/70">{item.category}</td>
+                            <td className="px-6 py-3.5 text-ink/70 font-medium">{item.category}</td>
                             <td className="px-6 py-3.5 font-bold text-ink">{item.qty} units</td>
-                            <td className="px-6 py-3.5 font-semibold text-amber-900">${item.price.toFixed(2)}</td>
+                            <td className="px-6 py-3.5 font-bold text-amber-950">${item.price.toFixed(2)}</td>
+                            <td className="px-6 py-3.5 text-ink/70 font-mono flex items-center gap-1">
+                              <Calendar size={12} className="text-amber-800" /> {item.expiry || "2027-12-31"}
+                            </td>
                             <td className="px-6 py-3.5">
                               <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                                 item.status === "Low Stock" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
@@ -361,58 +399,38 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
                       </tbody>
                     </table>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Tab 2: Inventory */}
-          {activeTab === "inventory" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-ink">Inventory Management ({products.length} Items)</h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowInvoiceModal(true)}
-                    className="px-3.5 py-2 rounded-lg bg-amber-100 text-amber-900 border border-amber-300/60 text-xs font-semibold hover:bg-amber-200"
-                  >
-                    <Upload size={14} className="inline mr-1" /> Upload Invoice
-                  </button>
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900"
-                  >
-                    + Add New Product
-                  </button>
-                </div>
-              </div>
-              {products.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-[#171310]/10 p-12 text-center space-y-3">
-                  <Package size={32} className="text-amber-800 mx-auto opacity-40" />
-                  <h3 className="font-bold text-base text-ink">No Products in Inventory</h3>
-                  <p className="text-xs text-ink/60 max-w-sm mx-auto">Upload a distributor receipt/invoice to extract line items directly, or add items manually.</p>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border border-[#171310]/10 p-6 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {products.map((p) => (
-                      <div key={p.id} className="p-4 rounded-xl border border-ink/10 bg-[#FAF8F5] space-y-2 relative group">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono text-ink/40">{p.id}</span>
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => setEditingProduct(p)} className="p-1 text-ink/60 hover:text-amber-900"><Edit size={13} /></button>
-                            <button onClick={() => handleDeleteProduct(p.id, p.name)} className="p-1 text-ink/60 hover:text-red-700"><Trash2 size={13} /></button>
-                          </div>
-                        </div>
-                        <div className="font-bold text-sm text-ink">{p.name}</div>
-                        <div className="text-xs text-ink/60">Category: {p.category}</div>
-                        <div className="flex items-center justify-between pt-2 border-t border-ink/5 text-xs">
-                          <span>Stock: <strong>{p.qty}</strong></span>
-                          <span className="text-amber-900 font-bold">${p.price.toFixed(2)}</span>
+                /* TILES / GRID VIEW */
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredProducts.map((p) => (
+                    <div key={p.id} className="p-5 rounded-2xl border border-ink/10 bg-white hover:shadow-md transition-all space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-ink/40 font-bold">{p.id}</span>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setEditingProduct(p)} className="p-1.5 rounded bg-black/5 text-ink/70 hover:text-amber-900"><Edit size={14} /></button>
+                          <button onClick={() => handleDeleteProduct(p.id, p.name)} className="p-1.5 rounded bg-black/5 text-ink/70 hover:text-red-700"><Trash2 size={14} /></button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div>
+                        <div className="font-bold text-sm text-ink">{p.name}</div>
+                        <span className="text-[11px] font-medium text-amber-900 bg-amber-100/70 px-2 py-0.5 rounded mt-1 inline-block">{p.category}</span>
+                      </div>
+                      <div className="pt-2 border-t border-ink/5 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-ink/60 block text-[10px]">Stock Count</span>
+                          <strong className="text-ink text-sm">{p.qty} units</strong>
+                        </div>
+                        <div>
+                          <span className="text-ink/60 block text-[10px]">Selling Price</span>
+                          <strong className="text-amber-950 text-sm">${p.price.toFixed(2)}</strong>
+                        </div>
+                      </div>
+                      <div className="pt-1.5 text-[11px] text-ink/60 flex items-center gap-1 font-mono">
+                        <Calendar size={12} className="text-amber-800" /> Expiry: {p.expiry || "2027-12-31"}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

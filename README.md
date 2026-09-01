@@ -1,51 +1,50 @@
 # Qilbo - Inventory Intelligence for Your POS
 
-![Qilbo](https://github.com/Zaheer2801/Qilbo.com/blob/main/qilbo-app/public/favicon.svg)
-
 **Stock it right. Qilbo does the counting.**
 
-A powerful, modern inventory management system built with React, Vite, and Tailwind CSS. Qilbo integrates seamlessly with your existing POS and transforms sales data into actionable intelligence.
+A powerful, modern retail landing page and Smart POS application built with React, Vite, GSAP, and Tailwind CSS. Qilbo integrates seamlessly with existing retail POS systems and transforms sales data into actionable inventory intelligence.
 
-## 🌟 Features
+Repository: [https://github.com/Zaheer2801/Final_Qilbo.git](https://github.com/Zaheer2801/Final_Qilbo.git)
 
-### 📊 Smart Dashboard
-- **Overview** - Real-time inventory metrics and insights
-- **Inventory Management** - Track products with CSV/photo import
-- **Procurement** - Streamline reorder timing and supplier management
-- **Pricing Intelligence** - Dynamic pricing with margin guardrails
-- **Expiry Tracking** - Monitor product expiration dates
-- **Smart Alerts** - Get notified before stock runs out or products expire
+---
 
-### 🎯 Core Capabilities
-- ✅ **Inventory Auditing** - Quantity tracking with detailed audit logs
-- ✅ **Image Enrichment** - AI-powered product photo enhancement
-- ✅ **CSV Import** - Bulk product data import
-- ✅ **Margin Management** - Category-aware profit margin policies
-- ✅ **Tax Integration** - Automatic tax calculations for liquor, tobacco, grocery, retail
-- ✅ **Local Storage** - All data persists locally in your browser
-- ✅ **Responsive Design** - Works on desktop and mobile
+## 🌟 Projects in this Repository
+
+### 1. 🚀 Landing Page (`landing/`)
+- **Theme**: Warm cream `#FAF6EF` canvas, `#171310` ink typography, `#92400E` amber accents.
+- **GSAP ScrollTrigger Animations**: Pinned scrub crossfades, feature swapper, circle scaling, and Venn diagram merging.
+- **Visual Media & Shaders**: Ambient motion particles background, retail POS photography, and threeui `QILBO` particle wordmark canvas with a continuous sequential glowing border.
+- **ROI Calculator & Store Showcase**: Interactive ROI & expiry waste calculator sliders and retail industry category tab switcher.
+
+### 2. 🛒 Smart POS App (`qilbo-smart-pos/` & `qilbo-app/`)
+- **Point of Sale & Inventory**: Real-time sales transactions, barcode scanning, CSV pricebook import, margin guardrails, and audit logging.
+
+---
 
 ## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+
-- npm or yarn
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/Zaheer2801/Qilbo.com.git
-cd Qilbo.com/qilbo-app
+git clone https://github.com/Zaheer2801/Final_Qilbo.git
+cd Final_Qilbo
 
-# Install dependencies
+# Start Landing Page
+cd landing
 npm install
-
-# Start development server
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173/`
+The landing page will be available at `http://localhost:5173/`
+
+### Build for Production & Hosting
+
+```bash
+# Build Landing Page
+cd landing
+npm run build
+```
 
 ### Build for Production
 

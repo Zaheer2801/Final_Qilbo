@@ -1,0 +1,9 @@
+{
+  "name": "qilbo-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd landing && npm install && npm run build",
+    "dev": "cd landing && npm run dev"
+  }
+}

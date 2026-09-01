@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users, Printer } from "lucide-react";
+import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users, Printer, FileSpreadsheet, BarChart3, PieChart, TrendingUp, Layers } from "lucide-react";
 import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
 
 export type DashboardViewProps = {
@@ -24,6 +24,8 @@ const STORES = [
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "inventory", label: "Inventory", icon: Package },
+  { id: "daily_sales", label: "NRS Daily Sales Feed", icon: FileSpreadsheet },
+  { id: "trendview", label: "TrendView Analytics", icon: BarChart3 },
   { id: "forecasting", label: "AI Demand & Reorders", icon: Cpu },
   { id: "invoices", label: "Invoices & Intake", icon: FileText },
   { id: "overrides", label: "Margin Guardrails", icon: DollarSign },
@@ -319,6 +321,92 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
       setProducts((prev) => prev.filter((p) => p.id !== id));
       addLog("Product Deleted", `Removed ${name} (ID: ${id}) from store inventory`, "delete");
     }
+  };
+
+  // Selected Category for TrendView Drilldown
+  const [selectedTrendCategory, setSelectedTrendCategory] = useState<string>("Spirits & Liquor");
+
+  // Day-wise NRS Sales Feed Ingested from no-reply@nrsplus.com
+  const [nrsDailySalesFeed] = useState([
+    {
+      date: "2026-08-31",
+      emailSubject: "Daily Sales Report Mon Aug 31, 2026 for Discount Liquor (83954)",
+      fileName: "Sales_History_Aug_31,_2026.csv",
+      itemRowsTotal: 1240.50,
+      itemRowsCount: 42,
+      deptRollupTotal: 99.42,
+      deptRollupCount: 3,
+      status: "Synced",
+    },
+    {
+      date: "2026-08-30",
+      emailSubject: "Daily Sales Report Sun Aug 30, 2026 for Discount Liquor (83954)",
+      fileName: "Sales_History_Aug_30,_2026.csv",
+      itemRowsTotal: 1110.20,
+      itemRowsCount: 38,
+      deptRollupTotal: 84.10,
+      deptRollupCount: 2,
+      status: "Synced",
+    },
+    {
+      date: "2026-08-25",
+      emailSubject: "Daily Sales Report Tue Aug 25, 2026 for Discount Liquor (83954)",
+      fileName: "Sales_History_Aug_25,_2026.csv",
+      itemRowsTotal: 0.00,
+      itemRowsCount: 0,
+      deptRollupTotal: 0.00,
+      deptRollupCount: 0,
+      status: "Suspect Outage",
+      note: "POS Sync Failure - Flagged as status = 'suspect' (Excluded from averages)",
+    },
+    {
+      date: "2026-08-24",
+      emailSubject: "Daily Sales Report Mon Aug 24, 2026 for Discount Liquor (83954)",
+      fileName: "Sales_History_Aug_24,_2026.csv",
+      itemRowsTotal: 0.00,
+      itemRowsCount: 0,
+      deptRollupTotal: 0.00,
+      deptRollupCount: 0,
+      status: "Suspect Outage",
+      note: "POS Sync Failure - Flagged as status = 'suspect' (Excluded from averages)",
+    },
+  ]);
+
+  // Category Sales Data for TrendView Stacked & Pie Charts
+  const categorySalesTrends = [
+    { category: "Spirits & Liquor", revenue: 4850.00, percentage: 44, unitsSold: 184, color: "bg-amber-800", textColor: "text-amber-900" },
+    { category: "Beer & Craft Brews", revenue: 3210.50, percentage: 29, unitsSold: 412, color: "bg-amber-600", textColor: "text-amber-700" },
+    { category: "Wine & Champagne", revenue: 1940.00, percentage: 18, unitsSold: 96, color: "bg-amber-500", textColor: "text-amber-600" },
+    { category: "Tobacco & Cigars", revenue: 640.00, percentage: 6, unitsSold: 140, color: "bg-stone-500", textColor: "text-stone-700" },
+    { category: "Grocery & Soda", revenue: 340.00, percentage: 3, unitsSold: 110, color: "bg-emerald-600", textColor: "text-emerald-700" },
+  ];
+
+  // Item-wise Breakdown Data for Category Drilldown
+  const categoryItemBreakdown: Record<string, any[]> = {
+    "Spirits & Liquor": [
+      { upc: "088004144722", name: "Fireball Cinnamon Whisky 375ml", unitsSold: 64, revenue: 706.56, margin: "32%", velocity: "Fast Mover" },
+      { upc: "816751021993", name: "Cutwater Long Island 6/4/12 Can", unitsSold: 42, revenue: 406.56, margin: "30%", velocity: "Fast Mover" },
+      { upc: "816751022006", name: "Cutwater Tequila Margarita 4pk", unitsSold: 38, revenue: 367.84, margin: "30%", velocity: "Fast Mover" },
+      { upc: "088004009373", name: "Fireball Cinnamon Whisky 100ml", unitsSold: 28, revenue: 139.72, margin: "35%", velocity: "Steady" },
+    ],
+    "Beer & Craft Brews": [
+      { upc: "018200005428", name: "Busch Can 16 FL OZ 6/4/16", unitsSold: 186, revenue: 974.64, margin: "24%", velocity: "Fast Mover #1" },
+      { upc: "018200005459", name: "Natural Ice 6/4/16 CAN", unitsSold: 142, revenue: 687.28, margin: "24%", velocity: "Fast Mover" },
+      { upc: "018200611681", name: "Busch 24/12 CAN Suitcase", unitsSold: 48, revenue: 849.60, margin: "22%", velocity: "Steady" },
+      { upc: "018200059902", name: "Michelob Ultra 2/12/12 BTL", unitsSold: 36, revenue: 538.92, margin: "26%", velocity: "Steady" },
+    ],
+    "Wine & Champagne": [
+      { upc: "088004051010", name: "Veuve Clicquot Brut 750ml", unitsSold: 24, revenue: 1799.76, margin: "36%", velocity: "High Margin" },
+      { upc: "088004051012", name: "Caymus Cabernet Napa 750ml", unitsSold: 12, revenue: 1199.88, margin: "35%", velocity: "High Margin" },
+    ],
+    "Tobacco & Cigars": [
+      { upc: "000000001001", name: "Marlboro Gold 100s Pack", unitsSold: 88, revenue: 440.00, margin: "14%", velocity: "Non-Alcohol Item" },
+      { upc: "000000001002", name: "Bic Lighter Standard", unitsSold: 52, revenue: 200.00, margin: "45%", velocity: "Impulse Add-on" },
+    ],
+    "Grocery & Soda": [
+      { upc: "000000002001", name: "Coca Cola 2-Liter Bottle", unitsSold: 60, revenue: 180.00, margin: "20%", velocity: "Non-Alcohol Item" },
+      { upc: "000000002002", name: "Red Bull Energy 12oz", unitsSold: 50, revenue: 160.00, margin: "25%", velocity: "Non-Alcohol Item" },
+    ],
   };
 
   // Filtered Products Logic
@@ -635,7 +723,199 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
             </div>
           )}
 
-          {/* Tab 3: AI Demand & Reorders */}
+          {/* Tab 3: NRS Daily Sales Feed */}
+          {activeTab === "daily_sales" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">NRS Daily Sales Feed (Gmail Automation)</h2>
+                  <p className="text-xs text-ink/60">Polls no-reply@nrsplus.com daily. Ingests Sales_History_*.csv day-by-day while preserving leading zero UPCs.</p>
+                </div>
+                <span className="px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                  <ShieldCheck size={14} /> Gmail Poller Active (06:00 AM)
+                </span>
+              </div>
+
+              {/* Day-Wise Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-ink/10 shadow-xs space-y-1">
+                  <div className="text-xs text-ink/60 font-semibold">Total Ingested Sales</div>
+                  <div className="text-2xl font-bold text-ink">$11,040.50</div>
+                  <div className="text-[11px] text-emerald-700 font-medium">Last 30 Days (Item UPCs)</div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-ink/10 shadow-xs space-y-1">
+                  <div className="text-xs text-ink/60 font-semibold">Department Rollups</div>
+                  <div className="text-2xl font-bold text-amber-900">$183.52</div>
+                  <div className="text-[11px] text-amber-800">Stored separate — Never double counted</div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-ink/10 shadow-xs space-y-1">
+                  <div className="text-xs text-ink/60 font-semibold">UPC String Integrity</div>
+                  <div className="text-2xl font-bold text-emerald-800">100% Valid</div>
+                  <div className="text-[11px] text-emerald-700">Leading zeros preserved (01820...)</div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-amber-200 bg-amber-50/50 shadow-xs space-y-1">
+                  <div className="text-xs text-amber-900 font-semibold flex items-center gap-1">
+                    <AlertTriangle size={14} /> Suspect Outages
+                  </div>
+                  <div className="text-2xl font-bold text-amber-900">4 Outages Flagged</div>
+                  <div className="text-[11px] text-amber-800">Flagged status = 'suspect'</div>
+                </div>
+              </div>
+
+              {/* Day-by-Day NRS Email Report History */}
+              <div className="bg-white rounded-2xl border border-[#171310]/10 overflow-hidden shadow-xs">
+                <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-ink">Day-Wise Ingested Sales Reports</h3>
+                  <span className="text-xs text-amber-900 font-mono font-bold">Email Sender: no-reply@nrsplus.com</span>
+                </div>
+                <div className="divide-y divide-ink/5">
+                  {nrsDailySalesFeed.map((feed, idx) => (
+                    <div key={idx} className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[#FAF8F5] transition-colors">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-3 h-3 rounded-full mt-1 ${feed.status === "Suspect Outage" ? "bg-amber-500 animate-pulse" : "bg-emerald-600"}`} />
+                        <div>
+                          <div className="font-bold text-sm text-ink flex items-center gap-2">
+                            <span>{feed.emailSubject}</span>
+                            <span className="text-xs font-mono text-ink/40">({feed.fileName})</span>
+                          </div>
+                          <p className="text-xs text-ink/60 mt-0.5">
+                            {feed.status === "Suspect Outage"
+                              ? feed.note
+                              : `Item Scan Revenue: $${feed.itemRowsTotal.toFixed(2)} (${feed.itemRowsCount} items) | Dept Rollup: $${feed.deptRollupTotal.toFixed(2)}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          feed.status === "Suspect Outage" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                        }`}>
+                          {feed.status}
+                        </span>
+                        <button className="px-3 py-1.5 rounded-lg border border-ink/15 text-xs font-semibold text-ink/70 hover:bg-black/5">
+                          View CSV
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: TrendView Analytics (Category Stacked Chart & Item Breakdown) */}
+          {activeTab === "trendview" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">TrendView Sales Analytics & Category Drilldown</h2>
+                  <p className="text-xs text-ink/60">Click any category stack or pie card below to break down item-level sales and find your top-selling SKUs.</p>
+                </div>
+                <span className="px-3 py-1.5 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center gap-1.5">
+                  <BarChart3 size={14} /> Interactive Visual Charts Engaged
+                </span>
+              </div>
+
+              {/* Stacked Category Revenue Bar */}
+              <div className="bg-white p-6 rounded-2xl border border-ink/10 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers size={18} className="text-amber-800" />
+                    <h3 className="font-bold text-sm text-ink">Category Revenue Breakdown (Stacked Distribution)</h3>
+                  </div>
+                  <span className="text-xs font-bold text-amber-900 font-mono">Total Sales: $10,951.00</span>
+                </div>
+
+                {/* Multi-Color Stacked Bar */}
+                <div className="h-6 w-full rounded-xl overflow-hidden flex shadow-2xs border border-black/10 cursor-pointer">
+                  {categorySalesTrends.map((cat) => (
+                    <div
+                      key={cat.category}
+                      onClick={() => setSelectedTrendCategory(cat.category)}
+                      style={{ width: `${cat.percentage}%` }}
+                      className={`${cat.color} hover:brightness-110 transition-all relative group flex items-center justify-center`}
+                      title={`${cat.category}: $${cat.revenue.toFixed(2)} (${cat.percentage}%)`}
+                    >
+                      {cat.percentage > 8 && (
+                        <span className="text-[10px] font-bold text-white font-mono">{cat.percentage}%</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Category Legend & Selector Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-2">
+                  {categorySalesTrends.map((cat) => {
+                    const isSelected = selectedTrendCategory === cat.category;
+                    return (
+                      <div
+                        key={cat.category}
+                        onClick={() => setSelectedTrendCategory(cat.category)}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-amber-800 bg-amber-50 shadow-xs ring-1 ring-amber-800"
+                            : "border-ink/10 bg-[#FAF8F5] hover:bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3 h-3 rounded-full ${cat.color}`} />
+                          <span className="font-bold text-xs text-ink truncate">{cat.category}</span>
+                        </div>
+                        <div className="mt-2 text-sm font-bold text-ink">${cat.revenue.toFixed(2)}</div>
+                        <div className="text-[10px] text-ink/60 font-medium mt-0.5">{cat.unitsSold} Units Sold ({cat.percentage}%)</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Item-Wise Breakdown Table for Selected Category */}
+              <div className="bg-white rounded-2xl border border-[#171310]/10 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between bg-[#FAF8F5]">
+                  <div className="flex items-center gap-2">
+                    <PieChart size={16} className="text-amber-800" />
+                    <h3 className="font-bold text-sm text-ink">
+                      Item-Level Performance: <span className="text-amber-900">{selectedTrendCategory}</span>
+                    </h3>
+                  </div>
+                  <span className="text-xs text-ink/60">
+                    Showing top-selling items driving <strong>{selectedTrendCategory}</strong> revenue
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#FAF8F5] text-ink/60 border-b border-ink/10">
+                      <tr>
+                        <th className="px-6 py-3 font-semibold">UPC String</th>
+                        <th className="px-6 py-3 font-semibold">Product Description</th>
+                        <th className="px-6 py-3 font-semibold">Units Sold</th>
+                        <th className="px-6 py-3 font-semibold">Total Revenue</th>
+                        <th className="px-6 py-3 font-semibold">Profit Margin</th>
+                        <th className="px-6 py-3 font-semibold text-right">Sales Velocity</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ink/5">
+                      {(categoryItemBreakdown[selectedTrendCategory] || []).map((item, idx) => (
+                        <tr key={idx} className="hover:bg-amber-50/50 transition-colors">
+                          <td className="px-6 py-3.5 font-mono text-amber-900 font-bold">{item.upc}</td>
+                          <td className="px-6 py-3.5 font-semibold text-ink">{item.name}</td>
+                          <td className="px-6 py-3.5 font-bold text-ink">{item.unitsSold} units</td>
+                          <td className="px-6 py-3.5 font-bold text-amber-950">${item.revenue.toFixed(2)}</td>
+                          <td className="px-6 py-3.5 font-semibold text-emerald-800">{item.margin}</td>
+                          <td className="px-6 py-3.5 text-right">
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 inline-flex items-center gap-1">
+                              <TrendingUp size={10} /> {item.velocity}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
           {activeTab === "forecasting" && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">

@@ -31,6 +31,13 @@ export default function Features() {
     return () => ctx.revert();
   }, []);
 
+  const featureImages = [
+    "/smart_inventory_tech.jpg",
+    "/pos_hero_bg.jpg",
+    "/retail_pos_terminal.jpg",
+    "/smart_inventory_tech.jpg",
+  ];
+
   return (
     <section id="features" ref={wrapRef} className="relative h-screen overflow-hidden">
       <div className="max-w-[1240px] mx-auto px-6 md:px-10 h-full grid md:grid-cols-2 gap-16 items-center">
@@ -61,11 +68,20 @@ export default function Features() {
           {features.map((f, i) => (
             <div
               key={f.n}
-              className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center transition-opacity duration-500"
+              className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center transition-opacity duration-500"
               style={{ opacity: i === active ? 1 : 0 }}
             >
-              <span className="font-display text-6xl text-amber-800/20 font-bold">{f.n}</span>
-              <div className="font-display text-xl font-semibold text-ink mt-4">{f.title}</div>
+              <div className="relative w-full h-full rounded-xl overflow-hidden border border-black/[0.06]">
+                <img
+                  src={featureImages[i % featureImages.length]}
+                  alt={f.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col items-center justify-end p-6">
+                  <span className="font-display text-6xl text-amber-100/30 font-bold">{f.n}</span>
+                  <div className="font-display text-xl font-semibold text-white mt-2">{f.title}</div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -73,3 +89,4 @@ export default function Features() {
     </section>
   );
 }
+

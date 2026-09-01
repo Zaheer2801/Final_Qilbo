@@ -4,6 +4,8 @@ import BeforeAfter from "./components/BeforeAfter";
 import Features from "./components/Features";
 import Statement from "./components/Statement";
 import Positioning from "./components/Positioning";
+import SavingsCalculator from "./components/SavingsCalculator";
+import IndustryCategories from "./components/IndustryCategories";
 import Workflow from "./components/Workflow";
 import FAQ from "./components/FAQ";
 import FinalCTA from "./components/FinalCTA";
@@ -19,6 +21,8 @@ export default function App() {
         <Features />
         <Statement />
         <Positioning />
+        <SavingsCalculator />
+        <IndustryCategories />
         <Workflow />
         <FAQ />
         <FinalCTA />
@@ -27,3 +31,4 @@ export default function App() {
     </div>
   );
 }
+

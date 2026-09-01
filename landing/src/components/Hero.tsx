@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { gsap } from "../lib/gsap";
 import { toasts } from "../data/content";
+import VideoCanvasBackground from "./VideoCanvasBackground";
 
 /** Toast notification loop — autoplay, independent of scroll (per spec:
  * only the hero loop and a logo strip run outside scroll-scrubbing; we
@@ -59,6 +60,14 @@ function ArcBackground() {
 export default function Hero() {
   return (
     <section className="relative pt-40 pb-24 md:pt-48 md:pb-32 overflow-hidden">
+      {/* Background Image Visual Overlay */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.07] mix-blend-multiply">
+        <img src="/pos_hero_bg.jpg" alt="Retail POS Environment" className="w-full h-full object-cover" />
+      </div>
+
+      {/* Ambient Video Canvas Background */}
+      <VideoCanvasBackground />
+
       <ArcBackground />
       <div className="relative max-w-[1240px] mx-auto px-6 md:px-10 grid md:grid-cols-2 gap-16 items-center">
         <div>
@@ -86,9 +95,25 @@ export default function Hero() {
         </div>
 
         <div className="relative">
-          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-xl p-6">
-            <div className="text-xs font-medium text-ink/40 uppercase tracking-wide mb-4">What Qilbo tracks</div>
-            <ActivityStack />
+          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-xl p-6 space-y-4">
+            {/* Visual Store Imagery Header */}
+            <div className="relative rounded-xl overflow-hidden h-40 border border-black/[0.06]">
+              <img
+                src="/smart_inventory_tech.jpg"
+                alt="Smart POS Inventory Tracking"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-3">
+                <span className="text-[11px] font-medium text-amber-50 bg-amber-900/80 px-2.5 py-1 rounded">
+                  Live POS Inventory Telemetry
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs font-medium text-ink/40 uppercase tracking-wide mb-4">What Qilbo tracks</div>
+              <ActivityStack />
+            </div>
           </div>
         </div>
       </div>

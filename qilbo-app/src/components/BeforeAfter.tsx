@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
-import { gsap, ScrollTrigger } from "../lib/gsap";
+import { gsap } from "../lib/gsap";
 import { afterList, beforeList } from "../data/content";
 
 /** One card, two states — crossfades continuously as the section scrolls
@@ -20,18 +20,24 @@ export default function BeforeAfter() {
 
     const ctx = gsap.context(() => {
       gsap.set(after, { opacity: 0 });
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "+=100%",
-        scrub: 0.3,
-        pin: true,
-        onUpdate: (self) => {
-          gsap.set(before, { opacity: 1 - self.progress });
-          gsap.set(after, { opacity: self.progress });
-          setIsAfter(self.progress > 0.5);
+      gsap.set(before, { opacity: 1 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: "+=100%",
+          scrub: 0.3,
+          pin: true,
+          onUpdate: (self) => {
+            setIsAfter(self.progress > 0.5);
+          },
         },
       });
+
+      // Sequence animations so before fades out completely BEFORE after fades in
+      tl.to(before, { opacity: 0, duration: 0.45, ease: "power1.out" }, 0)
+        .to(after, { opacity: 1, duration: 0.45, ease: "power1.in" }, 0.55);
     }, section);
 
     return () => ctx.revert();

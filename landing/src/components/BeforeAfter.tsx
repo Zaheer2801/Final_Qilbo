@@ -1,11 +1,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
-import { gsap, ScrollTrigger } from "../lib/gsap";
+import { gsap } from "../lib/gsap";
 import { afterList, beforeList } from "../data/content";
 
-/** One card, two states — crossfades continuously as the section scrolls
- * past, tied 1:1 to scroll progress (scrub), rather than two cards side by
- * side or a click-toggle. */
+/** One card, two states — crossfades cleanly as the section scrolls
+ * past, tied 1:1 to scroll progress (scrub), without overlapping text. */
 export default function BeforeAfter() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const beforeRef = useRef<HTMLDivElement>(null);
@@ -20,25 +19,31 @@ export default function BeforeAfter() {
 
     const ctx = gsap.context(() => {
       gsap.set(after, { opacity: 0 });
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "+=100%",
-        scrub: 0.3,
-        pin: true,
-        onUpdate: (self) => {
-          gsap.set(before, { opacity: 1 - self.progress });
-          gsap.set(after, { opacity: self.progress });
-          setIsAfter(self.progress > 0.5);
+      gsap.set(before, { opacity: 1 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: "+=100%",
+          scrub: 0.3,
+          pin: true,
+          onUpdate: (self) => {
+            setIsAfter(self.progress > 0.5);
+          },
         },
       });
+
+      // Sequence animations so before fades out completely BEFORE after fades in
+      tl.to(before, { opacity: 0, duration: 0.45, ease: "power1.out" }, 0)
+        .to(after, { opacity: 1, duration: 0.45, ease: "power1.in" }, 0.55);
     }, section);
 
     return () => ctx.revert();
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative min-h-screen flex items-center justify-center py-24">
+    <section ref={sectionRef} className="relative min-h-screen flex items-center justify-center py-24 bg-canvas text-ink">
       <div className="max-w-[720px] w-full mx-auto px-6 md:px-10">
         <div className="text-center mb-10">
           <span className="inline-flex items-center gap-1.5 text-xs font-medium tracking-wide uppercase text-ink/40">
@@ -72,3 +77,5 @@ export default function BeforeAfter() {
     </section>
   );
 }
+
+

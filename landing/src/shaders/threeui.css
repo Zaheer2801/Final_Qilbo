@@ -1,0 +1,58 @@
+.threeui-mount,
+.text-animation-collection,
+.shader-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@keyframes rotateBorderGlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.glowing-border-container {
+  position: relative;
+  border-radius: 1.25rem;
+  padding: 2px;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(146, 64, 14, 0.25);
+}
+
+.glowing-border-container::before {
+  content: "";
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 400%;
+  height: 400%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 60deg,
+    #92400e 120deg,
+    #fef3c7 180deg,
+    #b45309 240deg,
+    transparent 300deg,
+    transparent 360deg
+  );
+  animation: rotateBorderGlow 4s linear infinite;
+}
+
+.glowing-border-inner {
+  position: relative;
+  border-radius: 1.15rem;
+  background: #0d0b09;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+

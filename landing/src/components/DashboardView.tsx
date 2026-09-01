@@ -121,7 +121,59 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
     },
   ]);
 
-  const [invoicesHistory, setInvoicesHistory] = useState<any[]>([]);
+  // Uploaded Invoices Vault History
+  const [invoicesHistory, setInvoicesHistory] = useState<any[]>([
+    {
+      id: "INV-523219",
+      vendor: "Wayne Densch, Inc.",
+      invoiceNo: "523219",
+      date: "2026-08-31",
+      totalNet: 1103.75,
+      linesCount: 15,
+      creditAlert: 31.45,
+      status: "Reconciled & Archived",
+    },
+  ]);
+
+  // Invoice Document Viewer & Audit Print Modal State
+  const [viewingInvoiceDoc, setViewingInvoiceDoc] = useState<any | null>(null);
+
+  const handlePrintAuditDoc = (inv: any) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Distributor Invoice Audit Report - ${inv.invoiceNo}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 2rem; color: #171310; }
+            .header { border-b: 2px solid #171310; padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; }
+            table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+            th { background: #f5f5f5; }
+            .total { text-align: right; margin-top: 1.5rem; font-size: 16px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h2>DISTRIBUTOR INVOICE AUDIT REPORT</h2>
+              <p>Store: ${selectedStore} | Vendor: ${inv.vendor}</p>
+            </div>
+            <div style="text-align: right;">
+              <h3>Invoice #${inv.invoiceNo}</h3>
+              <p>Audit Timestamp: ${inv.date}</p>
+            </div>
+          </div>
+          <p><strong>Reconciliation Net Total:</strong> $${inv.totalNet.toFixed(2)} | <strong>Line Items:</strong> ${inv.linesCount} items</p>
+          ${inv.creditAlert > 0 ? `<p style="color: #92400e;"><strong>Credit Owed Claim:</strong> $${inv.creditAlert.toFixed(2)} (Driver Truck Breakage)</p>` : ""}
+          <p style="margin-top: 2rem; font-size: 10px; color: #666;">Certified Official Audit Record - Exported from Qilbo Smart POS Vault.</p>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const addLog = (action: string, details: string, type: LogItem["type"]) => {
     const newEntry: LogItem = {
@@ -749,6 +801,7 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
                           <th className="px-6 py-3 font-semibold">Lines</th>
                           <th className="px-6 py-3 font-semibold">Reconciliation Net</th>
                           <th className="px-6 py-3 font-semibold">Status</th>
+                          <th className="px-6 py-3 font-semibold text-right">Audit Vault</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#171310]/5">
@@ -763,6 +816,20 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
                               <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                                 {inv.status}
                               </span>
+                            </td>
+                            <td className="px-6 py-3.5 text-right space-x-1.5">
+                              <button
+                                onClick={() => setViewingInvoiceDoc(inv)}
+                                className="px-2.5 py-1 rounded bg-black/5 hover:bg-amber-100 text-amber-900 font-semibold text-[11px] transition-colors"
+                              >
+                                View Doc
+                              </button>
+                              <button
+                                onClick={() => handlePrintAuditDoc(inv)}
+                                className="px-2.5 py-1 rounded bg-amber-800 text-amber-50 font-semibold text-[11px] hover:bg-amber-900 transition-colors"
+                              >
+                                Print / Download
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -943,6 +1010,61 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Invoice Document Audit Viewer Modal */}
+      {viewingInvoiceDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-xl space-y-4 border border-ink/10 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+              <div>
+                <h3 className="font-bold text-base text-ink">Distributor Document Vault ({viewingInvoiceDoc.invoiceNo})</h3>
+                <p className="text-xs text-ink/60">Vendor: {viewingInvoiceDoc.vendor} | Audit Timestamp: {viewingInvoiceDoc.date}</p>
+              </div>
+              <button
+                onClick={() => setViewingInvoiceDoc(null)}
+                className="w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-ink/70"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#FAF8F5] border border-ink/10 space-y-2 text-xs">
+              <div className="flex justify-between"><span>Distributor House:</span><strong>{viewingInvoiceDoc.vendor}</strong></div>
+              <div className="flex justify-between"><span>Invoice Number:</span><strong className="font-mono text-amber-900">#{viewingInvoiceDoc.invoiceNo}</strong></div>
+              <div className="flex justify-between"><span>Extracted Line Items:</span><strong>{viewingInvoiceDoc.linesCount} items</strong></div>
+              <div className="flex justify-between"><span>Reconciliation Net:</span><strong className="text-amber-950 font-bold">${viewingInvoiceDoc.totalNet.toFixed(2)}</strong></div>
+              {viewingInvoiceDoc.creditAlert > 0 && (
+                <div className="flex justify-between text-amber-900 font-bold border-t border-amber-200 pt-2">
+                  <span>Driver Breakage Credit Owed:</span>
+                  <span>${viewingInvoiceDoc.creditAlert.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-1">
+                <ShieldCheck size={14} /> Audit Vault Compliance Secured
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewingInvoiceDoc(null)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-ink/70 hover:bg-black/5"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePrintAuditDoc(viewingInvoiceDoc)}
+                  className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-sm"
+                >
+                  Print / Download PDF Report
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

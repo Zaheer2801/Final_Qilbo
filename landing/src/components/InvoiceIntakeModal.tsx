@@ -86,11 +86,16 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
     if (!file) return;
 
     setUploadedFileName(file.name);
-    setFileType(file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/png"));
+    const isImg = file.type.startsWith("image/") || file.name.match(/\.(png|jpg|jpeg|webp)$/i);
+    setFileType(isImg ? file.type || "image/png" : "application/pdf");
 
-    // Create persistent original file blob URL
-    const blobUrl = URL.createObjectURL(file);
-    setOriginalFileUrl(blobUrl);
+    // Convert file to persistent DataURL for exact original proof viewing & downloading
+    const dataReader = new FileReader();
+    dataReader.onload = (dataEvt) => {
+      const dataUrl = dataEvt.target?.result as string;
+      setOriginalFileUrl(dataUrl);
+    };
+    dataReader.readAsDataURL(file);
 
     const reader = new FileReader();
 

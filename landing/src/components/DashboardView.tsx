@@ -1566,12 +1566,17 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
             {/* Document Preview Container - RENDERS ORIGINAL AS IS */}
             <div className="flex-1 overflow-hidden bg-black/5 rounded-xl border border-ink/15 p-2 flex items-center justify-center min-h-[480px]">
               {viewingInvoiceDoc.originalFileUrl ? (
-                viewingInvoiceDoc.fileType?.includes("image") ? (
-                  <img
-                    src={viewingInvoiceDoc.originalFileUrl}
-                    alt={viewingInvoiceDoc.originalFileName || "Original Invoice Receipt"}
-                    className="max-w-full max-h-[500px] object-contain rounded-lg shadow-sm border bg-white"
-                  />
+                viewingInvoiceDoc.fileType?.includes("image") || viewingInvoiceDoc.originalFileName?.match(/\.(png|jpg|jpeg|webp)$/i) ? (
+                  <div className="text-center space-y-2 max-h-[500px] overflow-auto">
+                    <img
+                      src={viewingInvoiceDoc.originalFileUrl}
+                      alt={viewingInvoiceDoc.originalFileName || "Original Invoice Receipt Image Proof"}
+                      className="max-w-full max-h-[460px] object-contain rounded-lg shadow-md border border-ink/20 bg-white mx-auto"
+                    />
+                    <div className="text-[11px] text-ink/60 font-mono">
+                      Image Proof File: <strong>{viewingInvoiceDoc.originalFileName}</strong> ({viewingInvoiceDoc.fileType})
+                    </div>
+                  </div>
                 ) : (
                   <iframe
                     src={viewingInvoiceDoc.originalFileUrl}
@@ -1626,27 +1631,26 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-ink/10">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-ink/10">
               <span className="text-xs text-emerald-800 font-bold flex items-center gap-1.5">
-                <ShieldCheck size={16} /> Raw Original Document Preserved Intact
+                <ShieldCheck size={16} /> Raw Image/PDF Proof Saved in Same Format
               </span>
               <div className="flex items-center gap-2">
-                {viewingInvoiceDoc.originalFileUrl && (
+                {viewingInvoiceDoc.originalFileUrl ? (
                   <a
                     href={viewingInvoiceDoc.originalFileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 rounded-lg border border-ink/15 text-xs font-semibold text-ink hover:bg-black/5"
+                    download={viewingInvoiceDoc.originalFileName || `Proof_${viewingInvoiceDoc.invoiceNo}`}
+                    className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-2xs flex items-center gap-1.5 cursor-pointer"
                   >
-                    Open File in New Window ↗
+                    <Download size={14} /> Download Original Proof ({viewingInvoiceDoc.originalFileName?.split('.').pop()?.toUpperCase() || "IMAGE"})
                   </a>
-                )}
+                ) : null}
                 <button
                   type="button"
                   onClick={() => handlePrintAuditDoc(viewingInvoiceDoc)}
-                  className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-sm"
+                  className="px-4 py-2 rounded-lg border border-ink/20 text-ink text-xs font-bold hover:bg-black/5"
                 >
-                  Print Official Audit Copy
+                  Print CPA Audit Report
                 </button>
               </div>
             </div>

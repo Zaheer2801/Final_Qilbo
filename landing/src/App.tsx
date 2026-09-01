@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Nav from "./components/Nav";
 import Hero from "./components/Hero";
 import BeforeAfter from "./components/BeforeAfter";
@@ -10,13 +11,16 @@ import Workflow from "./components/Workflow";
 import FAQ from "./components/FAQ";
 import FinalCTA from "./components/FinalCTA";
 import Footer from "./components/Footer";
+import StoreSetupModal from "./components/StoreSetupModal";
 
 export default function App() {
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
+
   return (
     <div className="bg-canvas text-ink" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      <Nav />
+      <Nav onOpenSetup={() => setIsSetupOpen(true)} />
       <main>
-        <Hero />
+        <Hero onOpenSetup={() => setIsSetupOpen(true)} />
         <BeforeAfter />
         <Features />
         <Statement />
@@ -25,10 +29,12 @@ export default function App() {
         <IndustryCategories />
         <Workflow />
         <FAQ />
-        <FinalCTA />
+        <FinalCTA onOpenSetup={() => setIsSetupOpen(true)} />
       </main>
       <Footer />
+      <StoreSetupModal isOpen={isSetupOpen} onClose={() => setIsSetupOpen(false)} />
     </div>
   );
 }
+
 

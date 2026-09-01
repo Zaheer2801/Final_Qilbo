@@ -57,7 +57,7 @@ function ArcBackground() {
   );
 }
 
-export default function Hero() {
+export default function Hero({ onOpenSetup }: { onOpenSetup?: () => void }) {
   return (
     <section className="relative pt-40 pb-24 md:pt-48 md:pb-32 overflow-hidden">
       {/* Background Image Visual Overlay */}
@@ -82,12 +82,13 @@ export default function Hero() {
             guardrails, and expiry warnings — before a shelf goes empty or a bottle goes to waste.
           </p>
           <div className="mt-9 flex items-center gap-4">
-            <a
-              href="#cta"
-              className="inline-flex items-center rounded-md bg-amber-800 text-amber-50 text-sm font-medium px-5 py-3 hover:bg-amber-900 transition-colors"
+            <button
+              type="button"
+              onClick={onOpenSetup}
+              className="inline-flex items-center rounded-md bg-amber-800 text-amber-50 text-sm font-medium px-5 py-3 hover:bg-amber-900 transition-all hover:scale-105 shadow-sm cursor-pointer"
             >
               Get started
-            </a>
+            </button>
             <a href="#workflow" className="inline-flex items-center text-sm font-medium text-ink/70 hover:text-ink transition-colors">
               See how it works →
             </a>

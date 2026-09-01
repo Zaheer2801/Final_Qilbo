@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { id: "faq", label: "FAQ", href: "#faq" },
 ];
 
-export default function Nav() {
+export default function Nav({ onOpenSetup }: { onOpenSetup?: () => void }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   return (
@@ -50,12 +50,13 @@ export default function Nav() {
           >
             Launch POS Demo
           </a>
-          <a
-            href="#cta"
-            className="inline-flex items-center rounded-md bg-amber-800 text-amber-50 text-sm font-medium px-4 py-2 hover:bg-amber-900 transition-all duration-200 hover:-translate-y-[2px] hover:shadow-md"
+          <button
+            type="button"
+            onClick={onOpenSetup}
+            className="inline-flex items-center rounded-md bg-amber-800 text-amber-50 text-sm font-medium px-4 py-2 hover:bg-amber-900 transition-all duration-200 hover:-translate-y-[2px] hover:shadow-md cursor-pointer"
           >
             Get started
-          </a>
+          </button>
         </div>
       </div>
     </header>

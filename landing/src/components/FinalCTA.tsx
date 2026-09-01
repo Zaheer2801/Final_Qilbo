@@ -1,4 +1,4 @@
-export default function FinalCTA() {
+export default function FinalCTA({ onOpenSetup }: { onOpenSetup?: () => void }) {
   return (
     <section id="cta" className="relative py-24 md:py-32 overflow-hidden">
       {/* Background Image Visual Overlay */}
@@ -13,12 +13,13 @@ export default function FinalCTA() {
           what it flags.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-          <a
-            href="#"
-            className="inline-flex items-center rounded-md bg-amber-800 text-amber-50 text-sm font-medium px-6 py-3.5 hover:bg-amber-900 transition-colors"
+          <button
+            type="button"
+            onClick={onOpenSetup}
+            className="inline-flex items-center rounded-md bg-amber-800 text-amber-50 text-sm font-medium px-6 py-3.5 hover:bg-amber-900 transition-all hover:scale-105 shadow-sm cursor-pointer"
           >
             Get started
-          </a>
+          </button>
           <a
             href="http://localhost:5173"
             target="_blank"

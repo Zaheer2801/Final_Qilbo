@@ -1,4 +1,10 @@
-export default function FinalCTA({ onOpenSetup }: { onOpenSetup?: () => void }) {
+export default function FinalCTA({
+  onOpenSetup,
+  onLaunchDashboard,
+}: {
+  onOpenSetup?: () => void;
+  onLaunchDashboard?: () => void;
+}) {
   return (
     <section id="cta" className="relative py-24 md:py-32 overflow-hidden">
       {/* Background Image Visual Overlay */}
@@ -20,14 +26,13 @@ export default function FinalCTA({ onOpenSetup }: { onOpenSetup?: () => void }) 
           >
             Get started
           </button>
-          <a
-            href="http://localhost:5173"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center rounded-md bg-amber-100 text-amber-900 text-sm font-medium px-6 py-3.5 hover:bg-amber-200 transition-colors border border-amber-300/60"
+          <button
+            type="button"
+            onClick={onLaunchDashboard}
+            className="inline-flex items-center rounded-md bg-amber-100 text-amber-900 text-sm font-medium px-6 py-3.5 hover:bg-amber-200 transition-all hover:scale-105 border border-amber-300/60 cursor-pointer"
           >
             Launch POS Demo
-          </a>
+          </button>
         </div>
       </div>
     </section>

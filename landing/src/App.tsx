@@ -12,13 +12,35 @@ import FAQ from "./components/FAQ";
 import FinalCTA from "./components/FinalCTA";
 import Footer from "./components/Footer";
 import StoreSetupModal from "./components/StoreSetupModal";
+import DashboardView from "./components/DashboardView";
 
 export default function App() {
+  const [viewMode, setViewMode] = useState<"landing" | "dashboard">("landing");
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [storeName, setStoreName] = useState("Cask & Cellar Spirits");
+
+  const handleLaunchDashboard = (customName?: string) => {
+    if (customName && typeof customName === "string") {
+      setStoreName(customName);
+    }
+    setViewMode("dashboard");
+  };
+
+  if (viewMode === "dashboard") {
+    return (
+      <DashboardView
+        storeName={storeName}
+        onBackToLanding={() => setViewMode("landing")}
+      />
+    );
+  }
 
   return (
     <div className="bg-canvas text-ink" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      <Nav onOpenSetup={() => setIsSetupOpen(true)} />
+      <Nav
+        onOpenSetup={() => setIsSetupOpen(true)}
+        onLaunchDashboard={() => handleLaunchDashboard()}
+      />
       <main>
         <Hero onOpenSetup={() => setIsSetupOpen(true)} />
         <BeforeAfter />
@@ -29,10 +51,17 @@ export default function App() {
         <IndustryCategories />
         <Workflow />
         <FAQ />
-        <FinalCTA onOpenSetup={() => setIsSetupOpen(true)} />
+        <FinalCTA
+          onOpenSetup={() => setIsSetupOpen(true)}
+          onLaunchDashboard={() => handleLaunchDashboard()}
+        />
       </main>
       <Footer />
-      <StoreSetupModal isOpen={isSetupOpen} onClose={() => setIsSetupOpen(false)} />
+      <StoreSetupModal
+        isOpen={isSetupOpen}
+        onClose={() => setIsSetupOpen(false)}
+        onLaunchDashboard={(name) => handleLaunchDashboard(name)}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, X, Plus, CheckCircle2, Store, Clock, ShieldC
 export type StoreSetupModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  onLaunchDashboard: (name: string) => void;
 };
 
 const OB_STEPS = [
@@ -17,7 +18,7 @@ const OB_STEPS = [
 
 const VERTICALS = ["Liquor & Wine Retail", "Convenience & Grocery", "Boutique & General Retail", "Hospitality / Bar", "E-commerce"];
 
-export default function StoreSetupModal({ isOpen, onClose }: StoreSetupModalProps) {
+export default function StoreSetupModal({ isOpen, onClose, onLaunchDashboard }: StoreSetupModalProps) {
   const [step, setStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
 
@@ -66,6 +67,8 @@ export default function StoreSetupModal({ isOpen, onClose }: StoreSetupModalProp
     setIsCompleted(true);
   };
 
+  const nameToPass = form.dbaName || form.businessName || "Cask & Cellar Spirits";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-2xl bg-[#FAF6EF] border border-[#171310]/15 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -105,17 +108,17 @@ export default function StoreSetupModal({ isOpen, onClose }: StoreSetupModalProp
               </div>
               <h2 className="text-2xl font-bold font-display text-ink">Store Setup Complete!</h2>
               <p className="text-sm text-ink/70 max-w-md mx-auto">
-                <strong>{form.dbaName || form.businessName || "Your Store"}</strong> is now configured with inventory margin guardrails and sales tax rules.
+                <strong>{nameToPass}</strong> is now configured with inventory margin guardrails and sales tax rules.
               </p>
               <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                 <button
                   onClick={() => {
                     onClose();
-                    window.location.href = "http://localhost:5173";
+                    onLaunchDashboard(nameToPass);
                   }}
-                  className="px-6 py-2.5 rounded-lg bg-amber-800 text-amber-50 font-semibold text-sm hover:bg-amber-900 shadow-sm transition-all"
+                  className="px-6 py-2.5 rounded-lg bg-amber-800 text-amber-50 font-semibold text-sm hover:bg-amber-900 shadow-sm transition-all cursor-pointer"
                 >
-                  Launch Live POS Dashboard
+                  Launch Live POS Dashboard →
                 </button>
                 <button
                   onClick={onClose}

@@ -351,16 +351,20 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                 </div>
               )}
 
-              {/* Line-by-Line Confirmation Table */}
+              {/* Line-by-Line Confirmation Screen */}
               <div className="bg-white rounded-xl border border-ink/10 overflow-hidden shadow-xs">
                 <div className="px-4 py-3 border-b border-ink/10 flex items-center justify-between bg-[#FAF8F5]">
-                  <h4 className="font-bold text-xs text-ink uppercase tracking-wide">Parsed Pack-Structure Line Items</h4>
-                  <span className="text-xs text-amber-900 font-medium font-mono">UPC String Matched to POS</span>
+                  <div>
+                    <h4 className="font-bold text-xs text-ink uppercase tracking-wide">Extracted Line Items (Confirm items to push to inventory)</h4>
+                    <p className="text-[11px] text-ink/60">Review and select which extracted products to commit to active store inventory.</p>
+                  </div>
+                  <span className="text-xs text-amber-900 font-medium font-mono">UPC Preserved</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-[#FAF8F5] text-ink/60 border-b border-ink/10">
                       <tr>
+                        <th className="px-4 py-2.5 font-semibold text-center">Confirm</th>
                         <th className="px-4 py-2.5 font-semibold">Item #</th>
                         <th className="px-4 py-2.5 font-semibold">Description</th>
                         <th className="px-4 py-2.5 font-semibold">UPC (TEXT)</th>
@@ -374,6 +378,13 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                     <tbody className="divide-y divide-ink/5">
                       {parsedLines.map((line, idx) => (
                         <tr key={idx} className={line.flag === "breakage" ? "bg-amber-50/80" : "hover:bg-black/2"}>
+                          <td className="px-4 py-2.5 text-center">
+                            <input
+                              type="checkbox"
+                              defaultChecked={line.flag !== "breakage"}
+                              className="w-4 h-4 accent-amber-800 rounded cursor-pointer"
+                            />
+                          </td>
                           <td className="px-4 py-2.5 font-mono text-ink/60">{line.vendorItemNo}</td>
                           <td className="px-4 py-2.5 font-semibold text-ink">
                             {line.description}

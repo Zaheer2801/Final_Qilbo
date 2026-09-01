@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, Receipt, DollarSign, AlertTriangle, Bell, Settings, ArrowLeft, Plus, CheckCircle, TrendingUp, AlertCircle, FileText, Upload, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Package, Receipt, DollarSign, AlertTriangle, Bell, Settings, ArrowLeft, Plus, CheckCircle, TrendingUp, AlertCircle, FileText, Upload, ShieldCheck, Edit, Trash2, History } from "lucide-react";
 import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
 
 export type DashboardViewProps = {
@@ -7,10 +7,19 @@ export type DashboardViewProps = {
   onBackToLanding: () => void;
 };
 
+export type LogItem = {
+  id: string;
+  timestamp: string;
+  action: string;
+  details: string;
+  type: "add" | "edit" | "delete" | "invoice";
+};
+
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "inventory", label: "Inventory", icon: Package },
   { id: "invoices", label: "Invoices & Intake", icon: FileText },
+  { id: "activity", label: "Activity Log", icon: History },
   { id: "procurement", label: "Procurement", icon: Receipt },
   { id: "pricing", label: "Pricing", icon: DollarSign },
   { id: "expiry", label: "Expiry", icon: AlertTriangle },
@@ -18,35 +27,59 @@ const TABS = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
-const INITIAL_PRODUCTS = [
-  { id: "P101", name: "Hennessy VS Cognac", brand: "Hennessy", category: "Spirits & Liquor", size: "750ml", qty: 24, minMargin: 28, cost: 34.50, price: 49.99, expiry: "2028-12-31", status: "Healthy" },
-  { id: "P102", name: "Casamigos Reposado Tequila", brand: "Casamigos", category: "Spirits & Liquor", size: "750ml", qty: 8, minMargin: 30, cost: 42.00, price: 62.99, expiry: "2027-06-30", status: "Low Stock" },
-  { id: "P103", name: "Veuve Clicquot Brut Champagne", brand: "Veuve Clicquot", category: "Wine & Champagne", size: "750ml", qty: 15, minMargin: 35, cost: 48.00, price: 74.99, expiry: "2026-11-15", status: "Healthy" },
-  { id: "P104", name: "Caymus Napa Valley Cabernet", brand: "Caymus", category: "Wine & Champagne", size: "750ml", qty: 4, minMargin: 35, cost: 65.00, price: 99.99, expiry: "2026-09-30", status: "Low Stock" },
-  { id: "P105", name: "Macallan 12 Year Single Malt", brand: "Macallan", category: "Spirits & Liquor", size: "750ml", qty: 12, minMargin: 28, cost: 58.00, price: 84.99, expiry: "2029-01-01", status: "Healthy" },
-];
+export type StoreProduct = {
+  id: string;
+  name: string;
+  brand: string;
+  category: string;
+  size: string;
+  qty: number;
+  minMargin: number;
+  cost: number;
+  price: number;
+  expiry: string;
+  status: string;
+};
+
+// CLEAN FRESH INVENTORY START (0 sample items!)
+const INITIAL_PRODUCTS: StoreProduct[] = [];
 
 export default function DashboardView({ storeName = "Discount Liquor #83954", onBackToLanding }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState("overview");
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<StoreProduct[]>(INITIAL_PRODUCTS);
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
   const [newProductQty, setNewProductQty] = useState("");
+  const [newProductCategory] = useState("Spirits & Liquor");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
-  const [invoicesHistory, setInvoicesHistory] = useState([
+  // Edit product modal state
+  const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
+
+  // Real-time Activity Audit Log
+  const [activityLog, setActivityLog] = useState<LogItem[]>([
     {
-      id: "INV-523219",
-      vendor: "Wayne Densch, Inc.",
-      invoiceNo: "523219",
-      date: "2026-08-31",
-      totalNet: 1103.75,
-      linesCount: 6,
-      creditAlert: 31.45,
-      status: "Reconciled",
+      id: "LOG-100",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      action: "System Initialized",
+      details: "Store inventory initialized clean (0 products). Ready for invoice extraction.",
+      type: "invoice",
     },
   ]);
+
+  const [invoicesHistory, setInvoicesHistory] = useState<any[]>([]);
+
+  const addLog = (action: string, details: string, type: LogItem["type"]) => {
+    const newEntry: LogItem = {
+      id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      action,
+      details,
+      type,
+    };
+    setActivityLog((prev) => [newEntry, ...prev]);
+  };
 
   const handleCommitInvoice = (invNo: string, vendor: string, lines: InvoiceLineParsed[], credit: number) => {
     const totalNet = lines.reduce((sum, l) => sum + l.lineNet, 0);
@@ -62,41 +95,77 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
     };
     setInvoicesHistory([newInv, ...invoicesHistory]);
 
-    // Update stock levels from units received
+    // Push extracted products to inventory
+    const newProducts: StoreProduct[] = [];
     lines.forEach((line) => {
       if (line.unitsReceived > 0) {
-        setProducts((prev) => {
-          const match = prev.find((p) => p.name.toLowerCase().includes(line.description.split(" ")[0].toLowerCase()));
-          if (match) {
-            return prev.map((p) => (p.id === match.id ? { ...p, qty: p.qty + line.unitsReceived } : p));
-          }
-          return prev;
+        newProducts.push({
+          id: `SKU-${line.upc.slice(-6)}`,
+          name: line.description,
+          brand: line.description.split(" ")[0],
+          category: "Spirits & Liquor",
+          size: "Case/Pack",
+          qty: line.unitsReceived,
+          minMargin: 28,
+          cost: line.unitCost,
+          price: Number((line.unitCost * 1.45).toFixed(2)),
+          expiry: "2028-12-31",
+          status: "Healthy",
         });
       }
     });
+
+    setProducts((prev) => [...newProducts, ...prev]);
+    addLog(
+      "Invoice Ingested & Approved",
+      `Extracted ${newProducts.length} line items from ${vendor} (Inv #${invNo}). Net total: $${totalNet.toFixed(2)}.`,
+      "invoice"
+    );
   };
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProductName) return;
-    const newProd = {
-      id: `P${106 + products.length}`,
+    const priceNum = Number(newProductPrice) || 29.99;
+    const qtyNum = Number(newProductQty) || 12;
+    const newProd: StoreProduct = {
+      id: `P${101 + products.length}`,
       name: newProductName,
-      brand: "Custom",
-      category: "Spirits & Liquor",
+      brand: newProductName.split(" ")[0],
+      category: newProductCategory,
       size: "750ml",
-      qty: Number(newProductQty) || 12,
+      qty: qtyNum,
       minMargin: 28,
-      cost: Number(newProductPrice) * 0.7 || 20,
-      price: Number(newProductPrice) || 29.99,
-      expiry: "2027-12-31",
-      status: "Healthy",
+      cost: Number((priceNum * 0.7).toFixed(2)),
+      price: priceNum,
+      expiry: "2028-12-31",
+      status: qtyNum < 5 ? "Low Stock" : "Healthy",
     };
     setProducts([newProd, ...products]);
+    addLog("Product Added Manually", `Added ${newProductName} (Qty: ${qtyNum}, Price: $${priceNum.toFixed(2)})`, "add");
     setNewProductName("");
     setNewProductPrice("");
     setNewProductQty("");
     setShowAddModal(false);
+  };
+
+  const handleUpdateProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    setProducts((prev) => prev.map((p) => (p.id === editingProduct.id ? editingProduct : p)));
+    addLog(
+      "Product Updated",
+      `Updated ${editingProduct.name} - Price: $${editingProduct.price}, Stock: ${editingProduct.qty}`,
+      "edit"
+    );
+    setEditingProduct(null);
+  };
+
+  const handleDeleteProduct = (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete ${name} from inventory?`)) {
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      addLog("Product Deleted", `Removed ${name} (ID: ${id}) from store inventory`, "delete");
+    }
   };
 
   return (
@@ -226,38 +295,73 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
                   <h3 className="font-bold text-sm text-ink">Active Store Inventory</h3>
                   <span className="text-xs text-ink/50">{products.length} Products Loaded</span>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#FAF8F5] text-ink/60 border-b border-[#171310]/10">
-                      <tr>
-                        <th className="px-6 py-3 font-semibold">SKU ID</th>
-                        <th className="px-6 py-3 font-semibold">Product Name</th>
-                        <th className="px-6 py-3 font-semibold">Category</th>
-                        <th className="px-6 py-3 font-semibold">Stock Qty</th>
-                        <th className="px-6 py-3 font-semibold">Price</th>
-                        <th className="px-6 py-3 font-semibold">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#171310]/5">
-                      {products.map((item) => (
-                        <tr key={item.id} className="hover:bg-amber-50/50 transition-colors">
-                          <td className="px-6 py-3.5 font-mono text-ink/60 font-medium">{item.id}</td>
-                          <td className="px-6 py-3.5 font-semibold text-ink">{item.name}</td>
-                          <td className="px-6 py-3.5 text-ink/70">{item.category}</td>
-                          <td className="px-6 py-3.5 font-bold text-ink">{item.qty} units</td>
-                          <td className="px-6 py-3.5 font-semibold text-amber-900">${item.price.toFixed(2)}</td>
-                          <td className="px-6 py-3.5">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                              item.status === "Low Stock" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
-                            }`}>
-                              {item.status}
-                            </span>
-                          </td>
+                {products.length === 0 ? (
+                  <div className="py-12 px-6 text-center space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 mx-auto flex items-center justify-center font-bold">
+                      0
+                    </div>
+                    <h4 className="font-bold text-sm text-ink">Inventory is Clean & Empty</h4>
+                    <p className="text-xs text-ink/60 max-w-sm mx-auto">
+                      No sample products! Upload a distributor receipt/invoice (PDF, Image, CSV) or click "+ Add Product" to populate your store.
+                    </p>
+                    <button
+                      onClick={() => setShowInvoiceModal(true)}
+                      className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900 inline-flex items-center gap-1.5"
+                    >
+                      <Upload size={14} /> Upload First Invoice / Receipt
+                    </button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#FAF8F5] text-ink/60 border-b border-[#171310]/10">
+                        <tr>
+                          <th className="px-6 py-3 font-semibold">SKU ID</th>
+                          <th className="px-6 py-3 font-semibold">Product Name</th>
+                          <th className="px-6 py-3 font-semibold">Category</th>
+                          <th className="px-6 py-3 font-semibold">Stock Qty</th>
+                          <th className="px-6 py-3 font-semibold">Price</th>
+                          <th className="px-6 py-3 font-semibold">Status</th>
+                          <th className="px-6 py-3 font-semibold text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-[#171310]/5">
+                        {products.map((item) => (
+                          <tr key={item.id} className="hover:bg-amber-50/50 transition-colors">
+                            <td className="px-6 py-3.5 font-mono text-ink/60 font-medium">{item.id}</td>
+                            <td className="px-6 py-3.5 font-semibold text-ink">{item.name}</td>
+                            <td className="px-6 py-3.5 text-ink/70">{item.category}</td>
+                            <td className="px-6 py-3.5 font-bold text-ink">{item.qty} units</td>
+                            <td className="px-6 py-3.5 font-semibold text-amber-900">${item.price.toFixed(2)}</td>
+                            <td className="px-6 py-3.5">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                item.status === "Low Stock" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                              }`}>
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-3.5 text-right space-x-1.5">
+                              <button
+                                onClick={() => setEditingProduct(item)}
+                                className="p-1.5 rounded bg-black/5 hover:bg-amber-100 hover:text-amber-900 text-ink/70 transition-colors"
+                                title="Edit Product"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(item.id, item.name)}
+                                className="p-1.5 rounded bg-black/5 hover:bg-red-100 hover:text-red-700 text-ink/70 transition-colors"
+                                title="Delete Product"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -266,28 +370,82 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
           {activeTab === "inventory" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-ink">Inventory Management</h2>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900"
-                >
-                  + Add New Product
-                </button>
+                <h2 className="text-lg font-bold text-ink">Inventory Management ({products.length} Items)</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowInvoiceModal(true)}
+                    className="px-3.5 py-2 rounded-lg bg-amber-100 text-amber-900 border border-amber-300/60 text-xs font-semibold hover:bg-amber-200"
+                  >
+                    <Upload size={14} className="inline mr-1" /> Upload Invoice
+                  </button>
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900"
+                  >
+                    + Add New Product
+                  </button>
+                </div>
               </div>
-              <div className="bg-white rounded-2xl border border-[#171310]/10 p-6 space-y-4">
-                <p className="text-xs text-ink/60">Manage product quantities, cost prices, selling prices, and floor margins.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {products.map((p) => (
-                    <div key={p.id} className="p-4 rounded-xl border border-ink/10 bg-[#FAF8F5] space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-ink/40">{p.id}</span>
-                        <span className="text-xs font-bold text-amber-900">${p.price.toFixed(2)}</span>
+              {products.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-[#171310]/10 p-12 text-center space-y-3">
+                  <Package size={32} className="text-amber-800 mx-auto opacity-40" />
+                  <h3 className="font-bold text-base text-ink">No Products in Inventory</h3>
+                  <p className="text-xs text-ink/60 max-w-sm mx-auto">Upload a distributor receipt/invoice to extract line items directly, or add items manually.</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-[#171310]/10 p-6 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {products.map((p) => (
+                      <div key={p.id} className="p-4 rounded-xl border border-ink/10 bg-[#FAF8F5] space-y-2 relative group">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-ink/40">{p.id}</span>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => setEditingProduct(p)} className="p-1 text-ink/60 hover:text-amber-900"><Edit size={13} /></button>
+                            <button onClick={() => handleDeleteProduct(p.id, p.name)} className="p-1 text-ink/60 hover:text-red-700"><Trash2 size={13} /></button>
+                          </div>
+                        </div>
+                        <div className="font-bold text-sm text-ink">{p.name}</div>
+                        <div className="text-xs text-ink/60">Category: {p.category}</div>
+                        <div className="flex items-center justify-between pt-2 border-t border-ink/5 text-xs">
+                          <span>Stock: <strong>{p.qty}</strong></span>
+                          <span className="text-amber-900 font-bold">${p.price.toFixed(2)}</span>
+                        </div>
                       </div>
-                      <div className="font-bold text-sm text-ink">{p.name}</div>
-                      <div className="text-xs text-ink/60">Category: {p.category}</div>
-                      <div className="flex items-center justify-between pt-2 border-t border-ink/5 text-xs">
-                        <span>Stock: <strong>{p.qty}</strong></span>
-                        <span className="text-emerald-700 font-semibold">Min Margin: {p.minMargin}%</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab 4: Activity Log / Audit Trail */}
+          {activeTab === "activity" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">Real-time Activity Log & Audit Trail</h2>
+                  <p className="text-xs text-ink/60">Audit trail of all inventory modifications, invoice extractions, edits, and deletions.</p>
+                </div>
+                <span className="text-xs font-mono text-amber-900 font-semibold">{activityLog.length} Events Logged</span>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-[#171310]/10 overflow-hidden shadow-xs">
+                <div className="divide-y divide-[#171310]/5">
+                  {activityLog.map((log) => (
+                    <div key={log.id} className="p-4 flex items-start gap-3 hover:bg-[#FAF8F5] transition-colors">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                        log.type === "add" ? "bg-emerald-100 text-emerald-800" :
+                        log.type === "edit" ? "bg-amber-100 text-amber-900" :
+                        log.type === "delete" ? "bg-rose-100 text-rose-800" : "bg-blue-100 text-blue-800"
+                      }`}>
+                        {log.type === "add" ? "+" : log.type === "edit" ? "E" : log.type === "delete" ? "✕" : "i"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold text-xs text-ink">{log.action}</h4>
+                          <span className="text-[11px] font-mono text-ink/40">{log.timestamp}</span>
+                        </div>
+                        <p className="text-xs text-ink/70 mt-0.5">{log.details}</p>
                       </div>
                     </div>
                   ))}
@@ -447,6 +605,72 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
           </form>
         </div>
       )}
+      {/* Edit Product Modal */}
+      {editingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <form onSubmit={handleUpdateProduct} className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4 border border-ink/10 shadow-2xl">
+            <h3 className="font-bold text-base text-ink">Edit Inventory Product ({editingProduct.id})</h3>
+            <div>
+              <label className="block text-xs font-semibold text-ink/80 mb-1">Product Name</label>
+              <input
+                type="text"
+                required
+                value={editingProduct.name}
+                onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-lg border border-ink/15 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink/80 mb-1">Category</label>
+              <input
+                type="text"
+                value={editingProduct.category}
+                onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-lg border border-ink/15 text-sm"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-ink/80 mb-1">Selling Price ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={editingProduct.price}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) || 0 })}
+                  className="w-full px-3.5 py-2 rounded-lg border border-ink/15 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink/80 mb-1">Stock Quantity</label>
+                <input
+                  type="number"
+                  required
+                  value={editingProduct.qty}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, qty: Number(e.target.value) || 0 })}
+                  className="w-full px-3.5 py-2 rounded-lg border border-ink/15 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingProduct(null)}
+                className="px-4 py-2 rounded-lg text-xs font-medium text-ink/70 hover:bg-black/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900"
+              >
+                Update Product
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Invoice & Receipt Intake Modal */}
       <InvoiceIntakeModal
         isOpen={showInvoiceModal}

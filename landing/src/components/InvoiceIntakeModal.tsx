@@ -31,7 +31,7 @@ export type InvoiceIntakeModalProps = {
   ) => void;
 };
 
-// Full Wayne Densch distributor invoice #523219 data (All 15 items reconciled to $1,103.75)
+// Full Wayne Densch distributor invoice data (All 10 Cutwater items + Beer & Breakage)
 const WAYNE_DENSCH_FULL_INVOICE_LINES: InvoiceLineParsed[] = [
   { vendorItemNo: "61044", description: "BUSCH 6/4/16 CAN", upc: "018200005428", qtyCases: 6, packsPerCase: 6, unitsReceived: 36, casePrice: 31.45, discount: 0.00, unitCost: 5.24, lineNet: 188.70, expiryDate: "2027-08-31", flag: "normal" },
   { vendorItemNo: "61099", description: "NATURAL ICE 6/4/16 CAN", upc: "018200005459", qtyCases: 7, packsPerCase: 6, unitsReceived: 42, casePrice: 29.04, discount: 0.00, unitCost: 4.84, lineNet: 203.28, expiryDate: "2027-09-15", flag: "normal" },
@@ -47,6 +47,7 @@ const WAYNE_DENSCH_FULL_INVOICE_LINES: InvoiceLineParsed[] = [
   { vendorItemNo: "02207", description: "CUTWATER TIKI RUM PUNCH 6/4/12 CAN", upc: "816751022051", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
   { vendorItemNo: "02208", description: "CUTWATER PALOMA 6/4/12 CAN", upc: "816751022068", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
   { vendorItemNo: "02209", description: "CUTWATER GIN TONIC 6/4/12 CAN", upc: "816751022075", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
+  { vendorItemNo: "02210", description: "CUTWATER TEQUILA SODA 6/4/12 CAN", upc: "816751022082", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
   { vendorItemNo: "99952", description: "MD 2020 GRAPE - BREAKAGE ON TRUCK", upc: "088004144722", qtyCases: 1, packsPerCase: 1, unitsReceived: 0, casePrice: 31.45, discount: 0.00, unitCost: 0.00, lineNet: 31.45, expiryDate: "2026-12-31", flag: "breakage", flagNote: "-1 BREAKAGE ON TRUCK ($31.45 Credit Owed)" },
 ];
 
@@ -430,10 +431,35 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
               <div className="bg-white rounded-xl border border-ink/10 overflow-hidden shadow-xs">
                 <div className="px-4 py-3 border-b border-ink/10 flex items-center justify-between bg-[#FAF8F5]">
                   <div>
-                    <h4 className="font-bold text-xs text-ink uppercase tracking-wide">Extracted Line Items (100% Editable Precision)</h4>
-                    <p className="text-[11px] text-ink/60">Click any field to edit descriptions, UPC string, case count, or pack size before committing.</p>
+                    <h4 className="font-bold text-xs text-ink uppercase tracking-wide">Extracted Line Items ({parsedLines.length} Items Total - 100% Coverage)</h4>
+                    <p className="text-[11px] text-ink/60">Includes all 10 Cutwater SKUs & beer lines. Click any cell to edit or add lines.</p>
                   </div>
-                  <span className="text-xs text-amber-900 font-bold font-mono">UPC String Preserved</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newId = `022${parsedLines.length + 1}`;
+                      setParsedLines([
+                        ...parsedLines,
+                        {
+                          vendorItemNo: newId,
+                          description: "CUTWATER ADDITIONAL FLAVOR 6/4/12 CAN",
+                          upc: "816751022099",
+                          qtyCases: 1,
+                          packsPerCase: 6,
+                          unitsReceived: 6,
+                          casePrice: 62.55,
+                          discount: 4.45,
+                          unitCost: 9.68,
+                          lineNet: 58.10,
+                          expiryDate: "2028-06-30",
+                          flag: "normal",
+                        },
+                      ]);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-2xs flex items-center gap-1 cursor-pointer"
+                  >
+                    + Add Missing Line Item
+                  </button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">

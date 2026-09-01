@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users } from "lucide-react";
+import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users, Printer } from "lucide-react";
 import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
 
 export type DashboardViewProps = {
@@ -59,6 +59,7 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
   const [newProductCategory] = useState("Spirits & Liquor");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [viewingInvoiceDoc, setViewingInvoiceDoc] = useState<any | null>(null);
 
   // Filters & View Mode State
   const [searchQuery, setSearchQuery] = useState("");
@@ -135,8 +136,52 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
     },
   ]);
 
-  // Invoice Document Viewer & Audit Print Modal State
-  const [viewingInvoiceDoc, setViewingInvoiceDoc] = useState<any | null>(null);
+  const handlePrintShelfTags = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Retail Shelf Label Tags - ${selectedStore}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 1rem; background: #fff; }
+            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .tag { border: 2px solid #171310; border-radius: 8px; padding: 12px; height: 160px; display: flex; flex-col; justify-content: space-between; page-break-inside: avoid; }
+            .store { font-size: 9px; font-weight: bold; text-transform: uppercase; color: #92400e; letter-spacing: 0.5px; }
+            .title { font-size: 14px; font-weight: bold; margin-top: 4px; color: #171310; line-height: 1.2; }
+            .price { font-size: 26px; font-weight: 900; color: #171310; text-align: right; }
+            .meta { font-size: 10px; color: #555; display: flex; justify-content: space-between; border-t: 1px solid #eee; pt: 4px; }
+            .barcode { font-family: monospace; font-size: 14px; font-weight: bold; text-align: center; letter-spacing: 3px; background: #f5f5f5; padding: 4px; border-radius: 4px; margin-top: 6px; }
+          </style>
+        </head>
+        <body>
+          <h3 style="margin-bottom: 1rem;">Retail Shelf Tags (${products.length} Products) - ${selectedStore}</h3>
+          <div class="grid">
+            ${(products.length > 0 ? products : [
+              { id: "SKU-005428", name: "BUSCH 6/4/16 CAN", category: "Beer & Craft Brews", price: 5.24, size: "16 oz", expiry: "2027-08-31" },
+              { id: "SKU-021993", name: "CUTWATER LONG ISLAND 4PK", category: "Spirits & Liquor", price: 9.68, size: "12 oz", expiry: "2028-06-30" },
+            ]).map(p => `
+              <div class="tag">
+                <div>
+                  <div class="store">${selectedStore}</div>
+                  <div class="title">${p.name}</div>
+                  <div style="font-size: 10px; color: #777; margin-top: 2px;">${p.category} | ${p.size || "750ml"}</div>
+                </div>
+                <div class="price">$${p.price.toFixed(2)}</div>
+                <div class="meta">
+                  <span>SKU: ${p.id}</span>
+                  <span>Margin: 28% Floor</span>
+                </div>
+                <div class="barcode">║▌║ ${p.id} ║▌║</div>
+              </div>
+            `).join('')}
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const handlePrintAuditDoc = (inv: any) => {
     const printWindow = window.open("", "_blank");
@@ -405,26 +450,36 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
                   </select>
                 </div>
 
-                {/* View Switcher (Table vs. Tiles) */}
-                <div className="flex items-center gap-1 bg-black/5 p-1 rounded-xl shrink-0">
+                {/* View Switcher & Shelf Tags Print Button */}
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setViewStyle("table")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                      viewStyle === "table" ? "bg-white text-amber-900 shadow-xs" : "text-ink/60 hover:text-ink"
-                    }`}
+                    onClick={handlePrintShelfTags}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-800 text-amber-50 text-xs font-semibold hover:bg-amber-900 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
                   >
-                    <List size={14} /> List View
+                    <Printer size={14} /> Print Shelf Tags & Barcodes
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewStyle("tiles")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                      viewStyle === "tiles" ? "bg-white text-amber-900 shadow-xs" : "text-ink/60 hover:text-ink"
-                    }`}
-                  >
-                    <Grid size={14} /> Tiles View
-                  </button>
+
+                  <div className="flex items-center gap-1 bg-black/5 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setViewStyle("table")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                        viewStyle === "table" ? "bg-white text-amber-900 shadow-xs" : "text-ink/60 hover:text-ink"
+                      }`}
+                    >
+                      <List size={14} /> List View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewStyle("tiles")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                        viewStyle === "tiles" ? "bg-white text-amber-900 shadow-xs" : "text-ink/60 hover:text-ink"
+                      }`}
+                    >
+                      <Grid size={14} /> Tiles View
+                    </button>
+                  </div>
                 </div>
               </div>
 

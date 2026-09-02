@@ -627,7 +627,9 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
               <div className="flex items-center gap-3">
                 {!extractionResult?.all_gates_passed && (
                   <span className="text-xs text-rose-700 font-bold flex items-center gap-1">
-                    <AlertTriangle size={14} /> Commit Blocked: Gates Unreconciled
+                    <AlertTriangle size={14} /> Commit Blocked: {
+                      extractionResult?.gates.find((g) => !g.passed)?.gate_name || "Gates Unreconciled"
+                    }
                   </span>
                 )}
                 <button

@@ -13,7 +13,7 @@ import type {
   GateResult,
 } from "./types";
 import { WAYNE_DENSCH_FIXTURE_TEXT } from "./__tests__/fixtures.test";
-import { parseWayneDensch } from "../../ingestion/parseWayneDensch";
+import { parseInvoice } from "../../ingestion/engine";
 
 export class IntakeRouter {
   public static async processFile(
@@ -32,48 +32,50 @@ export class IntakeRouter {
       rawText = WAYNE_DENSCH_FIXTURE_TEXT;
     }
 
-    // Execute exact deterministic parseWayneDensch parser
-    const wdResult = parseWayneDensch(rawText);
+    // Execute generic profile-driven parseInvoice engine
+    const engineRes = parseInvoice(rawText);
 
-    const mappedLines: CanonicalLineItem[] = wdResult.lines.map((l) => ({
+    const mappedLines: CanonicalLineItem[] = engineRes.lines.map((l) => ({
       vendor_item_no: l.itemNo,
-      upc: l.upc,
+      upc: l.upc || "",
       description: l.description,
-      cases: l.qtyCases,
+      cases: l.cases,
       packs_per_case: l.packsPerCase || 1,
       units_received: l.unitsReceived || 0,
       case_price: l.casePrice,
       discount: l.discount,
       unit_cost: l.unitCost || "0.0000",
       line_net: l.lineNet,
-      flags: l.flags.map((f) => (f === "AMBIGUOUS_PACK" ? "ambiguous" : f === "CREDIT_OWED" ? "breakage" : f.toLowerCase())),
+      flags: l.flags.map((f) => f.toLowerCase()),
       confidence: l.flags.includes("AMBIGUOUS_PACK") ? 0.4 : 0.99,
       ambiguous_reason: l.flags.includes("AMBIGUOUS_PACK")
         ? "Pack code ambiguous (4/6/16): could be 4 six-packs or 24 singles. Confirm pack size before costing."
         : undefined,
     }));
 
-    const mappedGates: GateResult[] = wdResult.gates.map((g) => ({
+    const mappedGates: GateResult[] = engineRes.gates.map((g) => ({
       passed: g.passed,
       gate_name: g.name,
       details: g.detail,
     }));
 
+    const unmappedSkus = engineRes.lines.filter((l) => l.flags.includes("NEEDS_UPC_MAPPING")).map((l) => l.itemNo);
+
     return {
-      invoice_id: wdResult.invoiceNo ? `INV-${wdResult.invoiceNo}` : `INV-${Date.now()}`,
-      vendor_id: "wayne_densch",
-      vendor_name: wdResult.vendor,
-      document_type: "INVOICE",
+      invoice_id: engineRes.invoiceNo ? `INV-${engineRes.invoiceNo}` : `INV-${Date.now()}`,
+      vendor_id: engineRes.vendorId || "unknown",
+      vendor_name: engineRes.displayName,
+      document_type: engineRes.documentType === "picklist" ? "PICKLIST" : "INVOICE",
       quality_tier: qualityTier,
-      stated_total: wdResult.statedTotal || "1103.75",
-      stated_cases: 29,
-      stated_units: 146,
+      stated_total: engineRes.statedTotal || "0.00",
+      stated_cases: engineRes.lines.reduce((a, l) => a + l.cases, 0),
+      stated_units: engineRes.lines.reduce((a, l) => a + (l.unitsReceived || 0), 0),
       lines: mappedLines,
       gates: mappedGates,
-      all_gates_passed: wdResult.passed,
-      requires_mapping_queue: false,
-      unmapped_vendor_skus: [],
-      rejection_reason: wdResult.passed ? undefined : "Commit Blocked: Ingestion Gates Failed",
+      all_gates_passed: engineRes.passed,
+      requires_mapping_queue: unmappedSkus.length > 0,
+      unmapped_vendor_skus: unmappedSkus,
+      rejection_reason: engineRes.passed ? undefined : engineRes.needsDiscovery ? "Unknown vendor layout. Layout discovery required." : "Commit Blocked: Ingestion Gates Failed",
     };
   }
 

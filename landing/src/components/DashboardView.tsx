@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users, Printer, FileSpreadsheet, BarChart3, PieChart, TrendingUp, Layers, Link2, ShoppingCart, FileCheck, Send, Download, Bot, Sparkles } from "lucide-react";
+import { Package, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, MapPin, Printer, Layers, ShoppingCart, Download, Bot, Sparkles, Send, AlertTriangle, BarChart3, PieChart, TrendingUp, Cpu, Users } from "lucide-react";
 import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
 import AiPriceCopilotModal from "./AiPriceCopilotModal";
 
@@ -17,23 +17,17 @@ export type LogItem = {
 };
 
 const TABS = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "inventory", label: "Inventory", icon: Package },
-  { id: "daily_sales", label: "NRS Daily Sales Feed", icon: FileSpreadsheet },
-  { id: "trendview", label: "TrendView Analytics", icon: BarChart3 },
-  { id: "forecasting", label: "AI Demand & Reorders", icon: Cpu },
-  { id: "po_builder", label: "Distributor PO Builder", icon: ShoppingCart },
-  { id: "aliases", label: "UPC Alias Resolver", icon: Link2 },
-  { id: "eod_tax", label: "CPA Tax Audit Vault", icon: FileCheck },
+  { id: "overview", label: "Inventory Overview", icon: Package },
+  { id: "vendors", label: "Vendor Procurement & POs", icon: ShoppingCart },
+  { id: "categories", label: "Categories & Stock", icon: Layers },
   { id: "invoices", label: "Invoices & Intake", icon: FileText },
-  { id: "overrides", label: "Margin Guardrails", icon: DollarSign },
-  { id: "shifts", label: "Shift & Register Audit", icon: Users },
   { id: "activity", label: "Activity Log", icon: History },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export type StoreProduct = {
   id: string;
+  upc: string;
   name: string;
   brand: string;
   category: string;
@@ -42,27 +36,83 @@ export type StoreProduct = {
   minMargin: number;
   cost: number;
   price: number;
+  vendor: string;
   expiry: string;
   status: string;
 };
 
-// Active Store Inventory (Preserving all 15 products cleanly)
+export type VendorContactInfo = {
+  id: string;
+  name: string;
+  repName: string;
+  phone: string;
+  email: string;
+  accountNo: string;
+  deliveryDays: string;
+  minOrderTotal: number;
+};
+
+export const VENDORS_LIST: VendorContactInfo[] = [
+  {
+    id: "v1",
+    name: "Wayne Densch, Inc.",
+    repName: "Dave Miller (A-B & Craft Sales Rep)",
+    phone: "(407) 555-0199",
+    email: "orders@waynedensch.com",
+    accountNo: "WD-83954-FL",
+    deliveryDays: "Tuesdays & Fridays (Order Cutoff: 4:00 PM)",
+    minOrderTotal: 250.00,
+  },
+  {
+    id: "v2",
+    name: "BBG / Breakthru Beverage Group",
+    repName: "Sarah Jenkins (Spirits Division)",
+    phone: "(407) 555-0244",
+    email: "orders@breakthrubev.com",
+    accountNo: "BBG-90412-FL",
+    deliveryDays: "Wednesdays (Order Cutoff: 3:00 PM)",
+    minOrderTotal: 350.00,
+  },
+  {
+    id: "v3",
+    name: "Southern Glazer's Wine & Spirits",
+    repName: "Marcus Vance (Wine & Liquor Rep)",
+    phone: "(407) 555-0388",
+    email: "orders@southernglazer.com",
+    accountNo: "SG-77182-FL",
+    deliveryDays: "Mondays & Thursdays (Order Cutoff: 5:00 PM)",
+    minOrderTotal: 300.00,
+  },
+];
+
+// Active Store Inventory (Preserving all 15 products cleanly with UPCs & Vendor Tags)
 const INITIAL_PRODUCTS: StoreProduct[] = [
-  { id: "SKU-021993", name: "CUTWATER LONG ISLAND 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 12.99, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-022105", name: "CUTWATER MANGO MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-022389", name: "CUTWATER PEACH MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-022068", name: "CUTWATER WHITE RUSSIAN 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-021238", name: "CUTWATER LIME MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-023799", name: "CUTWATER LEMON DROP MARTINI 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-020606", name: "CUTWATER VODKA MULE 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-021689", name: "CUTWATER MAI TAI 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-020477", name: "CUTWATER SPICY BLOODY MARY 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-021207", name: "CUTWATER TEQUILA PALOMA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-059902", name: "MICHELOB ULTRA 2/12/12 BTL", brand: "Michelob", category: "Beer & Craft Brews", size: "12 oz Btl", qty: 4, minMargin: 30, cost: 14.98, price: 21.71, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-005428", name: "BUSCH 6/4/16 CAN", brand: "Busch", category: "Beer & Craft Brews", size: "16 oz Can", qty: 36, minMargin: 24, cost: 5.24, price: 7.60, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-611681", name: "BUSCH 24/12 CAN", brand: "Busch", category: "Beer & Craft Brews", size: "24/12 Can", qty: 2, minMargin: 22, cost: 17.70, price: 25.67, expiry: "2027-12-31", status: "Low Stock" },
-  { id: "SKU-005459", name: "NATURAL ICE 6/4/16 CAN", brand: "Natural Ice", category: "Beer & Craft Brews", size: "16 oz Can", qty: 42, minMargin: 24, cost: 4.84, price: 7.02, expiry: "2027-12-31", status: "Healthy" },
-  { id: "SKU-271687", name: "NATURAL ICE 24/12 SUITCASE", brand: "Natural Ice", category: "Beer & Craft Brews", size: "24/12 Can", qty: 2, minMargin: 22, cost: 17.70, price: 25.67, expiry: "2027-12-31", status: "Low Stock" },
+  // Wayne Densch Products
+  { id: "SKU-021993", upc: "816751021993", name: "CUTWATER LONG ISLAND 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 12.99, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-022105", upc: "816751022105", name: "CUTWATER MANGO MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-022389", upc: "816751022389", name: "CUTWATER PEACH MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-022068", upc: "816751022068", name: "CUTWATER WHITE RUSSIAN 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-021238", upc: "816751021238", name: "CUTWATER LIME MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-023799", upc: "816751023799", name: "CUTWATER LEMON DROP MARTINI 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-020606", upc: "816751020606", name: "CUTWATER VODKA MULE 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-021689", upc: "816751021689", name: "CUTWATER MAI TAI 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-020477", upc: "816751020477", name: "CUTWATER SPICY BLOODY MARY 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-021207", upc: "816751021207", name: "CUTWATER TEQUILA PALOMA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-059902", upc: "018200059902", name: "MICHELOB ULTRA 2/12/12 BTL", brand: "Michelob", category: "Beer & Craft Brews", size: "12 oz Btl", qty: 4, minMargin: 30, cost: 14.98, price: 21.71, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-005428", upc: "018200005428", name: "BUSCH 6/4/16 CAN", brand: "Busch", category: "Beer & Craft Brews", size: "16 oz Can", qty: 36, minMargin: 24, cost: 5.24, price: 7.60, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-611681", upc: "018200611681", name: "BUSCH 24/12 CAN", brand: "Busch", category: "Beer & Craft Brews", size: "24/12 Can", qty: 2, minMargin: 22, cost: 17.70, price: 25.67, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Low Stock" },
+  { id: "SKU-005459", upc: "018200005459", name: "NATURAL ICE 6/4/16 CAN", brand: "Natural Ice", category: "Beer & Craft Brews", size: "16 oz Can", qty: 42, minMargin: 24, cost: 4.84, price: 7.02, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-271687", upc: "018200271687", name: "NATURAL ICE 24/12 SUITCASE", brand: "Natural Ice", category: "Beer & Craft Brews", size: "24/12 Can", qty: 2, minMargin: 22, cost: 17.70, price: 25.67, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Low Stock" },
+
+  // BBG / Breakthru Beverage Group Products
+  { id: "SKU-510010", upc: "088004051001", name: "HENNESSY VS COGNAC 750ML", brand: "Hennessy", category: "Spirits & Liquor", size: "750ml Btl", qty: 3, minMargin: 30, cost: 34.50, price: 49.99, vendor: "BBG / Breakthru Beverage Group", expiry: "2028-12-31", status: "Low Stock" },
+  { id: "SKU-510027", upc: "088004051002", name: "CROWN ROYAL CANADIAN 750ML", brand: "Crown Royal", category: "Spirits & Liquor", size: "750ml Btl", qty: 8, minMargin: 30, cost: 22.10, price: 32.99, vendor: "BBG / Breakthru Beverage Group", expiry: "2028-12-31", status: "Healthy" },
+  { id: "SKU-510034", upc: "088004051003", name: "PATRON SILVER TEQUILA 750ML", brand: "Patron", category: "Spirits & Liquor", size: "750ml Btl", qty: 2, minMargin: 30, cost: 38.00, price: 54.99, vendor: "BBG / Breakthru Beverage Group", expiry: "2028-12-31", status: "Low Stock" },
+
+  // Southern Glazer's Wine & Spirits Products
+  { id: "SKU-520015", upc: "088004052001", name: "TITO'S HANDMADE VODKA 1.75L", brand: "Tito's", category: "Spirits & Liquor", size: "1.75L Btl", qty: 3, minMargin: 30, cost: 24.00, price: 34.99, vendor: "Southern Glazer's Wine & Spirits", expiry: "2028-12-31", status: "Low Stock" },
+  { id: "SKU-144722", upc: "088004144722", name: "FIREBALL CINNAMON WHISKY 750ML", brand: "Fireball", category: "Spirits & Liquor", size: "750ml Btl", qty: 14, minMargin: 35, cost: 11.00, price: 16.99, vendor: "Southern Glazer's Wine & Spirits", expiry: "2028-12-31", status: "Healthy" },
+  { id: "SKU-520039", upc: "088004052003", name: "JÄGERMEISTER HERBAL LIQUEUR 750ML", brand: "Jägermeister", category: "Spirits & Liquor", size: "750ml Btl", qty: 1, minMargin: 30, cost: 18.50, price: 26.99, vendor: "Southern Glazer's Wine & Spirits", expiry: "2028-12-31", status: "Low Stock" },
 ];
 
 export type StoreProfile = {
@@ -157,6 +207,65 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
 
   // Edit product modal state
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
+
+  // Vendor Procurement State
+  const [selectedVendorId, setSelectedVendorId] = useState<string>("v1");
+  const [procurementQueue, setProcurementQueue] = useState<Array<{ skuId: string; cases: number }>>([]);
+  const [generatedPoDoc, setGeneratedPoDoc] = useState<any | null>(null);
+
+  const selectedVendor = VENDORS_LIST.find((v) => v.id === selectedVendorId) || VENDORS_LIST[0];
+
+  const handleAddToProcurementQueue = (skuId: string, defaultCases: number = 2) => {
+    setProcurementQueue((prev) => {
+      const existing = prev.find((item) => item.skuId === skuId);
+      if (existing) {
+        return prev.map((item) => (item.skuId === skuId ? { ...item, cases: item.cases + 1 } : item));
+      }
+      return [...prev, { skuId, cases: defaultCases }];
+    });
+    const prod = products.find((p) => p.id === skuId);
+    if (prod) {
+      addLog("Queued for Procurement", `Added ${prod.name} (UPC: ${prod.upc}) to ${selectedVendor.name} reorder queue.`, "add");
+    }
+  };
+
+  const handleUpdateQueueCases = (skuId: string, delta: number) => {
+    setProcurementQueue((prev) => {
+      return prev
+        .map((item) => (item.skuId === skuId ? { ...item, cases: Math.max(0, item.cases + delta) } : item))
+        .filter((item) => item.cases > 0);
+    });
+  };
+
+  const handleGenerateVendorPO = () => {
+    if (procurementQueue.length === 0) return;
+    const poNumber = `PO-${Math.floor(8000 + Math.random() * 1000)}`;
+    const queuedItems = procurementQueue.map((q) => {
+      const prod = products.find((p) => p.id === q.skuId)!;
+      const casePrice = prod ? prod.cost * 6 : 60; // 6 packs/units per case average
+      return {
+        ...prod,
+        casesToOrder: q.cases,
+        casePrice,
+        lineTotal: casePrice * q.cases,
+      };
+    });
+
+    const totalCost = queuedItems.reduce((sum, item) => sum + item.lineTotal, 0);
+
+    const poDoc = {
+      poNumber,
+      vendor: selectedVendor,
+      items: queuedItems,
+      totalCost,
+      date: new Date().toISOString().split("T")[0],
+      store: activeStore,
+    };
+
+    setGeneratedPoDoc(poDoc);
+    addLog("Purchase Order Generated", `Generated PO #${poNumber} for ${selectedVendor.name} with ${queuedItems.length} line items ($${totalCost.toFixed(2)} total).`, "invoice");
+    setProcurementQueue([]);
+  };
 
   // Pack-Size Categorization (Strictly isolates 4-packs from 24-packs / suitcases)
   const getPackSizeCategory = (name: string): string => {
@@ -439,6 +548,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
           : "Spirits & Liquor";
         newProducts.push({
           id: `SKU-${line.upc.slice(-6)}`,
+          upc: line.upc || "000000000000",
           name: line.description,
           brand: line.description.split(" ")[0],
           category: cat,
@@ -447,6 +557,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
           minMargin: 28,
           cost: line.unitCost,
           price: Number((line.unitCost * 1.45).toFixed(2)),
+          vendor: vendor || "Wayne Densch, Inc.",
           expiry: line.expiryDate || "2027-12-31",
           status: "Healthy",
         });
@@ -468,6 +579,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
     const qtyNum = Number(newProductQty) || 12;
     const newProd: StoreProduct = {
       id: `P${101 + products.length}`,
+      upc: "088004" + Math.floor(100000 + Math.random() * 900000),
       name: newProductName,
       brand: newProductName.split(" ")[0],
       category: newProductCategory,
@@ -476,6 +588,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
       minMargin: 28,
       cost: Number((priceNum * 0.7).toFixed(2)),
       price: priceNum,
+      vendor: "Local Direct Supplier",
       expiry: "2028-12-31",
       status: qtyNum < 5 ? "Low Stock" : "Healthy",
     };
@@ -841,7 +954,8 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                     <table className="w-full text-left text-xs">
                       <thead className="bg-[#FAF8F5] text-ink/70 border-b border-[#171310]/10">
                         <tr>
-                          <th className="px-4 py-3 font-bold">SKU / UPC</th>
+                          <th className="px-4 py-3 font-bold">SKU ID</th>
+                          <th className="px-4 py-3 font-bold text-amber-900 bg-amber-50/60">UPC / Barcode</th>
                           <th className="px-4 py-3 font-bold">Product Name</th>
                           <th className="px-4 py-3 font-bold">Category</th>
                           <th className="px-4 py-3 font-bold text-center">Stock Qty</th>
@@ -860,6 +974,11 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                           return (
                             <tr key={item.id} className="hover:bg-amber-50/40 transition-colors">
                               <td className="px-4 py-3.5 font-mono text-ink/60 font-bold text-[11px]">{item.id}</td>
+                              <td className="px-4 py-3.5 bg-amber-50/20">
+                                <div className="font-mono text-amber-950 font-bold bg-amber-100/80 border border-amber-300/80 px-2 py-0.5 rounded text-[11px] inline-block tracking-wider shadow-2xs">
+                                  {item.upc || "000000000000"}
+                                </div>
+                              </td>
                               <td className="px-4 py-3.5 font-bold text-ink">
                                 <div>{item.name}</div>
                                 <div className="text-[10px] font-semibold text-ink/40 uppercase">{item.brand || item.name.split(" ")[0]}</div>
@@ -965,6 +1084,247 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Vendor Procurement Portal & Reorder Queue */}
+          {activeTab === "vendors" && (
+            <div className="space-y-6">
+              {/* Header & Vendor Selector */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-ink/10 shadow-xs">
+                <div>
+                  <h2 className="text-base font-bold text-ink flex items-center gap-2">
+                    <ShoppingCart size={20} className="text-amber-800" /> Vendor Procurement Portal & PO Queue
+                  </h2>
+                  <p className="text-xs text-ink/60 mt-0.5">Select a distributor to view contact details, items procured, available stock after sales, and queue reorders.</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-bold text-ink/70 shrink-0">Select Distributor:</label>
+                  <select
+                    value={selectedVendorId}
+                    onChange={(e) => setSelectedVendorId(e.target.value)}
+                    className="px-3.5 py-2 bg-[#FAF8F5] border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer shadow-2xs"
+                  >
+                    {VENDORS_LIST.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} ({v.repName.split("(")[0].trim()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Selected Vendor Contact & Schedule Card */}
+              <div className="bg-gradient-to-br from-amber-900 to-amber-950 text-amber-50 rounded-2xl p-6 shadow-md border border-amber-800 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-700/50 pb-4">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold bg-amber-800/80 px-2.5 py-1 rounded-md">
+                      DISTRIBUTOR ACCOUNT #{selectedVendor.accountNo}
+                    </span>
+                    <h3 className="text-xl font-display font-bold mt-1 text-white">{selectedVendor.name}</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 bg-amber-800/80 text-amber-200 rounded-lg text-xs font-bold border border-amber-700">
+                      🚚 {selectedVendor.deliveryDays}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-sans">
+                  <div className="bg-white/10 p-3 rounded-xl backdrop-blur-xs">
+                    <span className="text-amber-300/80 text-[10px] uppercase font-bold tracking-wider block">Sales Representative</span>
+                    <strong className="text-sm text-white font-semibold block mt-0.5">{selectedVendor.repName}</strong>
+                  </div>
+                  <div className="bg-white/10 p-3 rounded-xl backdrop-blur-xs">
+                    <span className="text-amber-300/80 text-[10px] uppercase font-bold tracking-wider block">Phone Contact</span>
+                    <strong className="text-sm text-white font-mono block mt-0.5">{selectedVendor.phone}</strong>
+                  </div>
+                  <div className="bg-white/10 p-3 rounded-xl backdrop-blur-xs">
+                    <span className="text-amber-300/80 text-[10px] uppercase font-bold tracking-wider block">Email Order Inbox</span>
+                    <strong className="text-sm text-white font-mono block mt-0.5">{selectedVendor.email}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Products Procured From Selected Vendor Table */}
+              <div className="bg-white rounded-2xl border border-ink/10 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-ink/10 flex items-center justify-between bg-[#FAF8F5]">
+                  <div>
+                    <h3 className="font-bold text-sm text-ink">Products Procured From {selectedVendor.name}</h3>
+                    <p className="text-[11px] text-ink/60">Review available stock after sales and queue low stock items for your next delivery.</p>
+                  </div>
+                  <span className="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-lg">
+                    {products.filter((p) => p.vendor.toLowerCase().includes(selectedVendor.name.toLowerCase().split(" ")[0])).length} Products Listed
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#FAF8F5] text-ink/70 border-b border-ink/10">
+                      <tr>
+                        <th className="px-4 py-3 font-bold">UPC / Barcode</th>
+                        <th className="px-4 py-3 font-bold">Product Name</th>
+                        <th className="px-4 py-3 font-bold">Category</th>
+                        <th className="px-4 py-3 font-bold">Pack Size</th>
+                        <th className="px-4 py-3 font-bold text-center">Available Stock (After Sales)</th>
+                        <th className="px-4 py-3 font-bold">Unit Cost ($)</th>
+                        <th className="px-4 py-3 font-bold">Retail Price ($)</th>
+                        <th className="px-4 py-3 font-bold text-right">Procurement Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ink/5">
+                      {products
+                        .filter((p) => p.vendor.toLowerCase().includes(selectedVendor.name.toLowerCase().split(" ")[0]))
+                        .map((p) => {
+                          const queuedItem = procurementQueue.find((q) => q.skuId === p.id);
+                          const isLowStock = p.qty <= 4;
+
+                          return (
+                            <tr key={p.id} className={isLowStock ? "bg-amber-50/70 hover:bg-amber-100/60" : "hover:bg-black/2"}>
+                              <td className="px-4 py-3.5 font-mono text-amber-950 font-bold text-[11px]">
+                                <span className="bg-amber-100 border border-amber-300 px-2 py-0.5 rounded tracking-wider">
+                                  {p.upc}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 font-bold text-ink">
+                                <div>{p.name}</div>
+                                <div className="text-[10px] text-ink/40 font-mono">SKU: {p.id}</div>
+                              </td>
+                              <td className="px-4 py-3.5 text-ink/70">{p.category}</td>
+                              <td className="px-4 py-3.5 text-ink/70 font-mono">{p.size}</td>
+                              <td className="px-4 py-3.5 text-center">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold ${
+                                  isLowStock ? "bg-amber-200 text-amber-950 border border-amber-400" : "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                                }`}>
+                                  {p.qty} units {isLowStock ? "⚠️ LOW STOCK" : "✓ Healthy"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 font-mono text-ink/80 font-bold">${p.cost.toFixed(2)}</td>
+                              <td className="px-4 py-3.5 font-mono text-emerald-900 font-bold">${p.price.toFixed(2)}</td>
+                              <td className="px-4 py-3.5 text-right">
+                                {queuedItem ? (
+                                  <div className="inline-flex items-center gap-1 bg-emerald-100 border border-emerald-300 rounded-lg p-1">
+                                    <button
+                                      onClick={() => handleUpdateQueueCases(p.id, -1)}
+                                      className="w-6 h-6 rounded bg-white font-bold text-emerald-900 hover:bg-emerald-200 flex items-center justify-center text-xs cursor-pointer"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="px-2 font-mono font-bold text-xs text-emerald-900">{queuedItem.cases} cs</span>
+                                    <button
+                                      onClick={() => handleUpdateQueueCases(p.id, 1)}
+                                      className="w-6 h-6 rounded bg-white font-bold text-emerald-900 hover:bg-emerald-200 flex items-center justify-center text-xs cursor-pointer"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => handleAddToProcurementQueue(p.id, 2)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs flex items-center gap-1 ml-auto cursor-pointer ${
+                                      isLowStock
+                                        ? "bg-amber-800 hover:bg-amber-900 text-amber-50"
+                                        : "bg-emerald-800 hover:bg-emerald-900 text-emerald-50"
+                                    }`}
+                                  >
+                                    + Add to Reorder Queue
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Reorder Queue Drawer / Submit PO Bar */}
+              {procurementQueue.length > 0 && (
+                <div className="bg-emerald-950 text-emerald-50 p-6 rounded-2xl border border-emerald-700 shadow-xl space-y-4 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-800 pb-4">
+                    <div>
+                      <h3 className="font-bold text-base text-white flex items-center gap-2">
+                        <ShoppingCart size={18} className="text-emerald-300" /> Reorder Queue for {selectedVendor.name}
+                      </h3>
+                      <p className="text-xs text-emerald-200/70">
+                        {procurementQueue.length} Low-Stock & Scheduled Items Queued for Next Delivery
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleGenerateVendorPO}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      🚀 Submit Reorder Queue & Generate Distributor PO
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {procurementQueue.map((q) => {
+                      const prod = products.find((p) => p.id === q.skuId);
+                      if (!prod) return null;
+                      const caseCost = prod.cost * 6;
+
+                      return (
+                        <div key={q.skuId} className="bg-emerald-900/80 p-3 rounded-xl border border-emerald-700/60 flex items-center justify-between text-xs">
+                          <div>
+                            <div className="font-bold text-white truncate max-w-[180px]">{prod.name}</div>
+                            <div className="text-[10px] text-emerald-300 font-mono">UPC: {prod.upc} | Stock: {prod.qty}</div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-white font-mono block">{q.cases} cs</span>
+                            <span className="text-[10px] text-emerald-200/80 font-mono">${(caseCost * q.cases).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Categories & Stock Breakdown */}
+          {activeTab === "categories" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">Inventory Breakdown By Department & Category</h2>
+                  <p className="text-xs text-ink/60">Live stock counts and available units across all inventory categories.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {["Spirits & Liquor", "Beer & Craft Brews", "Wine & Champagne", "Tobacco & Cigars", "Grocery & Soda"].map((cat) => {
+                  const catProds = products.filter((p) => p.category === cat);
+                  const totalUnits = catProds.reduce((sum, p) => sum + p.qty, 0);
+                  const lowStockCount = catProds.filter((p) => p.qty <= 4).length;
+
+                  return (
+                    <div key={cat} className="bg-white p-5 rounded-2xl border border-ink/10 shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-ink">{cat}</span>
+                        <span className="text-xs font-mono font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md">
+                          {catProds.length} Products
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-ink/5 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-ink/60 text-[10px] block">Available Units</span>
+                          <strong className="text-ink text-sm font-mono">{totalUnits} units</strong>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-ink/60 text-[10px] block">Reorder Status</span>
+                          <span className={`font-bold text-xs ${lowStockCount > 0 ? "text-amber-800" : "text-emerald-800"}`}>
+                            {lowStockCount > 0 ? `${lowStockCount} Low Stock` : "All Healthy"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -2058,6 +2418,127 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                 className="px-4 py-2 rounded-xl bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-2xs"
               >
                 Save & Switch Store
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generated Purchase Order Confirmation Modal */}
+      {generatedPoDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl space-y-4 border border-ink/10 shadow-2xl animate-fade-in">
+            <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-ink font-display">Purchase Order Generated Successfully</h3>
+                  <p className="text-xs text-ink/60">PO #{generatedPoDoc.poNumber} • Ready for {generatedPoDoc.vendor.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setGeneratedPoDoc(null)}
+                className="w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-ink/70 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-[#FAF8F5] p-4 rounded-xl border border-ink/10 space-y-3 text-xs">
+              <div className="flex justify-between border-b border-ink/10 pb-2">
+                <div>
+                  <strong className="text-ink text-sm block">{generatedPoDoc.vendor.name}</strong>
+                  <span className="text-ink/60 font-mono">Rep: {generatedPoDoc.vendor.repName} ({generatedPoDoc.vendor.phone})</span>
+                </div>
+                <div className="text-right font-mono">
+                  <span className="text-emerald-900 font-bold text-base block">${generatedPoDoc.totalCost.toFixed(2)}</span>
+                  <span className="text-ink/60">{generatedPoDoc.items.length} Line Items</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {generatedPoDoc.items.map((item: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between bg-white p-2 rounded-lg border border-ink/5">
+                    <div>
+                      <strong className="text-ink block">{item.name}</strong>
+                      <span className="text-[10px] text-ink/50 font-mono">UPC: {item.upc} | SKU: {item.id}</span>
+                    </div>
+                    <div className="text-right font-mono">
+                      <span className="font-bold text-emerald-900 block">{item.casesToOrder} cases</span>
+                      <span className="text-[10px] text-ink/60">${item.lineTotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-ink/10">
+              <button
+                type="button"
+                onClick={() => setGeneratedPoDoc(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-ink/70 hover:bg-black/5 cursor-pointer"
+              >
+                Close Window
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const printWin = window.open("", "_blank");
+                  if (printWin) {
+                    printWin.document.write(`
+                      <html>
+                        <head>
+                          <title>Purchase Order #${generatedPoDoc.poNumber} - ${generatedPoDoc.vendor.name}</title>
+                          <style>
+                            body { font-family: system-ui, sans-serif; padding: 2rem; color: #171310; }
+                            .header { border-bottom: 2px solid #171310; padding-bottom: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 12px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background: #f5f5f5; }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="header">
+                            <div>
+                              <h2>DISTRIBUTOR PURCHASE ORDER</h2>
+                              <p>PO #: <strong>${generatedPoDoc.poNumber}</strong></p>
+                              <p>Date: ${generatedPoDoc.date}</p>
+                            </div>
+                            <div style="text-align: right;">
+                              <h3>Distributor: ${generatedPoDoc.vendor.name}</h3>
+                              <p>Rep: ${generatedPoDoc.vendor.repName}</p>
+                              <p>Phone: ${generatedPoDoc.vendor.phone}</p>
+                            </div>
+                          </div>
+                          <table>
+                            <thead>
+                              <tr><th>UPC / Barcode</th><th>Product Name</th><th>Cases Ordered</th><th>Est. Case Price</th><th>Line Net</th></tr>
+                            </thead>
+                            <tbody>
+                              ${generatedPoDoc.items.map((i: any) => `
+                                <tr>
+                                  <td>${i.upc}</td>
+                                  <td>${i.name}</td>
+                                  <td>${i.casesToOrder} cs</td>
+                                  <td>$${i.casePrice.toFixed(2)}</td>
+                                  <td>$${i.lineTotal.toFixed(2)}</td>
+                                </tr>
+                              `).join("")}
+                            </tbody>
+                          </table>
+                          <h3 style="text-align: right; margin-top: 1.5rem;">Total Order Net: $${generatedPoDoc.totalCost.toFixed(2)}</h3>
+                          <script>window.print();</script>
+                        </body>
+                      </html>
+                    `);
+                    printWin.document.close();
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-800 text-emerald-50 text-xs font-bold hover:bg-emerald-900 shadow-2xs cursor-pointer flex items-center gap-1.5"
+              >
+                <Printer size={14} /> Print & Send PO Document
               </button>
             </div>
           </div>

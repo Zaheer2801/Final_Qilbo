@@ -418,26 +418,82 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
     },
   ]);
 
+// Helper to generate real, scannable 1D UPC-A Barcode SVG vectors
+function generateUpcABarcodeSvg(upcInput: string, options: { height?: number; scale?: number } = {}): string {
+  const digitsOnly = (upcInput || "").replace(/\D/g, "");
+  const upc = digitsOnly.padStart(12, "0").slice(-12);
+
+  const L_CODES = [
+    "0001101", "0011001", "0010011", "0111101", "0100011",
+    "0110001", "0101111", "0111011", "0110111", "0001011"
+  ];
+  const R_CODES = [
+    "1110010", "1100110", "1101100", "1000010", "1011100",
+    "1001110", "1010000", "1000100", "1001000", "1110100"
+  ];
+
+  let bitPattern = "101"; // Start guard
+  for (let i = 0; i < 6; i++) {
+    const digit = parseInt(upc[i], 10) || 0;
+    bitPattern += L_CODES[digit];
+  }
+  bitPattern += "01010"; // Center guard
+  for (let i = 6; i < 12; i++) {
+    const digit = parseInt(upc[i], 10) || 0;
+    bitPattern += R_CODES[digit];
+  }
+  bitPattern += "101"; // End guard
+
+  const scale = options.scale || 2;
+  const height = options.height || 45;
+  const quietZone = 6 * scale;
+  const barcodeWidth = bitPattern.length * scale;
+  const totalWidth = barcodeWidth + quietZone * 2;
+  const totalHeight = height + 18;
+
+  let rects = "";
+  for (let i = 0; i < bitPattern.length; i++) {
+    if (bitPattern[i] === "1") {
+      const x = quietZone + i * scale;
+      const isGuard = i < 3 || (i >= 45 && i < 50) || i >= 92;
+      const h = isGuard ? height + 5 : height;
+      rects += `<rect x="${x}" y="0" width="${scale}" height="${h}" fill="#000000" />`;
+    }
+  }
+
+  const formattedUpc = `${upc.slice(0, 1)} ${upc.slice(1, 6)} ${upc.slice(6, 11)} ${upc.slice(11)}`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" style="display:block;margin:0 auto;background:#ffffff;">
+    <rect width="${totalWidth}" height="${totalHeight}" fill="#ffffff"/>
+    <g>${rects}</g>
+    <text x="${totalWidth / 2}" y="${height + 15}" font-family="monospace, sans-serif" font-size="12" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1.5">${formattedUpc}</text>
+  </svg>`;
+}
+
   const handlePrintSingleProductBarcode = (product: StoreProduct) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+    const barcodeSvg = generateUpcABarcodeSvg(product.upc || "816751021993", { height: 55, scale: 2.2 });
+
     printWindow.document.write(`
       <html>
         <head>
           <title>Customer Shelf Tag - ${product.name}</title>
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; background: #fff; color: #000; }
-            .tag-container { max-width: 380px; margin: 0 auto; border: 3px solid #000; border-radius: 12px; padding: 20px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: space-between; height: 160px; }
+            .tag-container { max-width: 380px; margin: 0 auto; border: 3px solid #000; border-radius: 12px; padding: 20px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; }
             .name { font-size: 18px; font-weight: 800; text-transform: uppercase; color: #000; line-height: 1.25; letter-spacing: -0.3px; }
-            .price { font-size: 40px; font-weight: 900; color: #000; text-align: right; font-family: system-ui, sans-serif; }
-            .barcode-box { font-family: monospace; font-size: 18px; font-weight: 900; text-align: center; letter-spacing: 4px; background: #f8f8f8; padding: 8px 16px; border-radius: 8px; border: 2px solid #000; margin-top: 8px; }
+            .price { font-size: 42px; font-weight: 900; color: #000; text-align: right; font-family: system-ui, sans-serif; margin: 8px 0; }
+            .barcode-box { text-align: center; margin-top: 10px; padding: 8px; border: 1.5px solid #000; border-radius: 8px; background: #fff; }
           </style>
         </head>
         <body>
           <div class="tag-container">
             <div class="name">${product.name}</div>
             <div class="price">$${product.price.toFixed(2)}</div>
-            <div class="barcode-box">║▌║ ${product.upc || "816751021993"} ║▌║</div>
+            <div class="barcode-box">
+              ${barcodeSvg}
+            </div>
           </div>
           <script>window.print();</script>
         </body>
@@ -457,10 +513,10 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; padding: 1.5rem; background: #fff; color: #000; }
             .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-            .tag { border: 2.5px solid #000; border-radius: 10px; padding: 14px; height: 135px; display: flex; flex-direction: column; justify-content: space-between; page-break-inside: avoid; background: #fff; }
+            .tag { border: 2.5px solid #000; border-radius: 10px; padding: 14px; height: 180px; display: flex; flex-direction: column; justify-content: space-between; page-break-inside: avoid; background: #fff; }
             .name { font-size: 15px; font-weight: 800; text-transform: uppercase; color: #000; line-height: 1.2; letter-spacing: -0.2px; }
-            .price { font-size: 30px; font-weight: 900; color: #000; text-align: right; font-family: system-ui, sans-serif; }
-            .barcode { font-family: monospace; font-size: 15px; font-weight: 900; text-align: center; letter-spacing: 4px; background: #f8f8f8; padding: 6px 10px; border-radius: 6px; border: 1.5px solid #000; margin-top: 4px; }
+            .price { font-size: 32px; font-weight: 900; color: #000; text-align: right; font-family: system-ui, sans-serif; margin: 4px 0; }
+            .barcode-box { text-align: center; margin-top: 4px; padding: 4px; border: 1px solid #000; border-radius: 6px; background: #fff; }
           </style>
         </head>
         <body>
@@ -469,7 +525,9 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
               <div class="tag">
                 <div class="name">${p.name}</div>
                 <div class="price">$${p.price.toFixed(2)}</div>
-                <div class="barcode">║▌║ ${p.upc || "816751021993"} ║▌║</div>
+                <div class="barcode-box">
+                  ${generateUpcABarcodeSvg(p.upc || "816751021993", { height: 42, scale: 1.8 })}
+                </div>
               </div>
             `).join('')}
           </div>

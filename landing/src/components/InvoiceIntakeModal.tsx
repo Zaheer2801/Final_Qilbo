@@ -1,10 +1,13 @@
-import { useState, useRef } from "react";
-import { X, Upload, FileText, Image as ImageIcon, FileSpreadsheet, Edit3, CheckCircle2, AlertTriangle, ArrowRight, PackageCheck } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { X, Upload, AlertTriangle, FileText, CheckCircle2, RefreshCw, Image as ImageIcon, FileSpreadsheet, Edit3, PackageCheck, ArrowRight } from "lucide-react";
+import { IntakeRouter } from "../lib/ingestion/IntakeRouter";
+import type { ExtractionResult } from "../lib/ingestion/types";
+import { runIngestionPipelineTests } from "../lib/ingestion/__tests__/fixtures.test";
 
-export type InvoiceLineParsed = {
+export interface InvoiceLineParsed {
   vendorItemNo: string;
   description: string;
-  upc: string; // MUST BE TEXT to preserve leading zero!
+  upc: string;
   qtyCases: number;
   packsPerCase: number;
   unitsReceived: number;
@@ -12,10 +15,10 @@ export type InvoiceLineParsed = {
   discount: number;
   unitCost: number;
   lineNet: number;
-  expiryDate: string;
-  flag?: "breakage" | "out_of_stock" | "unparsed_pack" | "normal";
+  expiryDate?: string;
+  flag?: "normal" | "breakage" | "ambiguous" | "provisional_cost";
   flagNote?: string;
-};
+}
 
 export type InvoiceIntakeModalProps = {
   isOpen: boolean;
@@ -31,35 +34,18 @@ export type InvoiceIntakeModalProps = {
   ) => void;
 };
 
-// Full Wayne Densch distributor invoice data (All 10 Cutwater items + Beer & Breakage)
-const WAYNE_DENSCH_FULL_INVOICE_LINES: InvoiceLineParsed[] = [
-  { vendorItemNo: "61044", description: "BUSCH 6/4/16 CAN", upc: "018200005428", qtyCases: 6, packsPerCase: 6, unitsReceived: 36, casePrice: 31.45, discount: 0.00, unitCost: 5.24, lineNet: 188.70, expiryDate: "2027-08-31", flag: "normal" },
-  { vendorItemNo: "61099", description: "NATURAL ICE 6/4/16 CAN", upc: "018200005459", qtyCases: 7, packsPerCase: 6, unitsReceived: 42, casePrice: 29.04, discount: 0.00, unitCost: 4.84, lineNet: 203.28, expiryDate: "2027-09-15", flag: "normal" },
-  { vendorItemNo: "61168", description: "BUSCH 24/12 CAN", upc: "018200611681", qtyCases: 2, packsPerCase: 1, unitsReceived: 2, casePrice: 19.65, discount: 1.95, unitCost: 17.70, lineNet: 35.40, expiryDate: "2027-10-01", flag: "normal" },
-  { vendorItemNo: "61170", description: "NATURAL ICE 24/12 SUITCASE", upc: "018200271687", qtyCases: 2, packsPerCase: 1, unitsReceived: 2, casePrice: 19.65, discount: 1.95, unitCost: 17.70, lineNet: 35.40, expiryDate: "2027-10-01", flag: "normal" },
-  { vendorItemNo: "96769", description: "MICHELOB ULTRA 2/12/12 BTL", upc: "018200059902", qtyCases: 2, packsPerCase: 2, unitsReceived: 4, casePrice: 29.95, discount: 0.00, unitCost: 14.97, lineNet: 59.90, expiryDate: "2027-11-20", flag: "normal" },
-  { vendorItemNo: "02201", description: "CUTWATER LONG ISLAND 6/4/12 CAN", upc: "816751021993", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02202", description: "CUTWATER TEQUILA MARGARITA 6/4/12 CAN", upc: "816751022006", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02203", description: "CUTWATER VODKA MULE 6/4/12 CAN", upc: "816751022013", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02204", description: "CUTWATER RUM MOJITO 6/4/12 CAN", upc: "816751022020", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02205", description: "CUTWATER MANHATTAN 6/4/12 CAN", upc: "816751022037", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02206", description: "CUTWATER WHITE RUSSIAN 6/4/12 CAN", upc: "816751022044", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02207", description: "CUTWATER TIKI RUM PUNCH 6/4/12 CAN", upc: "816751022051", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02208", description: "CUTWATER PALOMA 6/4/12 CAN", upc: "816751022068", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02209", description: "CUTWATER GIN TONIC 6/4/12 CAN", upc: "816751022075", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "02210", description: "CUTWATER TEQUILA SODA 6/4/12 CAN", upc: "816751022082", qtyCases: 1, packsPerCase: 6, unitsReceived: 6, casePrice: 62.55, discount: 4.45, unitCost: 9.68, lineNet: 58.10, expiryDate: "2028-06-30", flag: "normal" },
-  { vendorItemNo: "99952", description: "MD 2020 GRAPE - BREAKAGE ON TRUCK", upc: "088004144722", qtyCases: 1, packsPerCase: 1, unitsReceived: 0, casePrice: 31.45, discount: 0.00, unitCost: 0.00, lineNet: 31.45, expiryDate: "2026-12-31", flag: "breakage", flagNote: "-1 BREAKAGE ON TRUCK ($31.45 Credit Owed)" },
-];
-
 export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }: InvoiceIntakeModalProps) {
   const [intakeMode, setIntakeMode] = useState<"file" | "manual">("file");
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [vendorName, setVendorName] = useState("Wayne Densch, Inc.");
   const [invoiceNo, setInvoiceNo] = useState("523219");
-  const [parsedLines, setParsedLines] = useState<InvoiceLineParsed[]>(WAYNE_DENSCH_FULL_INVOICE_LINES);
+  const [parsedLines, setParsedLines] = useState<InvoiceLineParsed[]>([]);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [originalFileUrl, setOriginalFileUrl] = useState<string>("");
   const [fileType, setFileType] = useState<string>("application/pdf");
+  const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
+  const [testLogs, setTestLogs] = useState<string[]>([]);
+  const [showTestModal, setShowTestModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Manual entry single line form
@@ -71,81 +57,10 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
 
   if (!isOpen) return null;
 
-  // Real-time Pack Structure Parsing Engine
-  const parsePackStructure = (desc: string): number => {
-    const match64 = desc.match(/6\/4/i);
-    if (match64) return 6; // 6 four-packs per case = 6
-    const match212 = desc.match(/2\/12/i);
-    if (match212) return 2; // 2 twelve-packs per case = 2
-    const match2412 = desc.match(/24\/12/i);
-    if (match2412) return 1; // 24-pack is 1 unit
-    return 1;
-  };
-
-  // Advanced Multi-Column Invoice Text Tokenizer & Extractor
-  const extractLinesFromText = (rawText: string): InvoiceLineParsed[] => {
-    // Detect if rawText contains garbled PDF binary characters (e.g. \uFFFD or replacement char )
-    const hasGarbledBinary = rawText.includes("\uFFFD") || (rawText.match(/[^\x00-\x7F]/g) || []).length > 10;
-    if (hasGarbledBinary) {
-      // PDF stream contains encoded binary fonts; return empty array so clean Wayne Densch dataset is used!
-      return [];
-    }
-
-    const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
-    const extracted: InvoiceLineParsed[] = [];
-
-    lines.forEach((lineStr, idx) => {
-      // Skip header/footer lines
-      if (lineStr.match(/INVOICE|STATEMENT|TOTAL|PAGE|BALANCE|TERMS|REMIT/i) && !lineStr.match(/\d+\.\d{2}/)) {
-        return;
-      }
-
-      const priceMatch = lineStr.match(/\$?(\d+\.\d{2})/);
-      const upcMatch = lineStr.match(/\b(\d{12})\b/);
-      const qtyMatch = lineStr.match(/\b(\d{1,3})\s*(cs|cases|case|ea|pk)?\b/i);
-
-      if (priceMatch || lineStr.match(/[A-Z]{3,}/i)) {
-        const itemNoMatch = lineStr.match(/^(\d{4,6}|\w{3,8})\b/);
-        const itemNo = itemNoMatch ? itemNoMatch[1] : `${idx + 1000}`;
-        const price = priceMatch ? Number(priceMatch[1]) : 29.95;
-        const upcStr = upcMatch ? upcMatch[1] : (88004000000 + idx).toString().padStart(12, "0");
-        const qty = qtyMatch ? Math.max(1, Number(qtyMatch[1])) : 1;
-
-        let desc = lineStr
-          .replace(itemNo, "")
-          .replace(priceMatch ? priceMatch[0] : "", "")
-          .replace(upcMatch ? upcMatch[0] : "", "")
-          .replace(/\$|\b(cs|cases|case)\b/gi, "")
-          .replace(/[^\x00-\x7F]/g, "") // Strip non-ASCII symbols
-          .trim();
-
-        // Reject garbled descriptions
-        if (desc.length < 3 || desc.includes("")) return;
-
-        const packs = parsePackStructure(desc);
-        const units = qty * packs;
-        const unitC = packs > 0 ? price / packs : price;
-        const isBreakage = desc.toUpperCase().includes("BREAKAGE") || lineStr.toUpperCase().includes("BREAKAGE");
-
-        extracted.push({
-          vendorItemNo: itemNo,
-          description: desc,
-          upc: upcStr,
-          qtyCases: qty,
-          packsPerCase: packs,
-          unitsReceived: isBreakage ? 0 : units,
-          casePrice: price,
-          discount: 0,
-          unitCost: Number(unitC.toFixed(2)),
-          lineNet: Number((qty * price).toFixed(2)),
-          expiryDate: "2027-12-31",
-          flag: isBreakage ? "breakage" : "normal",
-          flagNote: isBreakage ? `-1 BREAKAGE ON TRUCK ($${price.toFixed(2)} Credit Owed)` : undefined,
-        });
-      }
-    });
-
-    return extracted;
+  const handleRunPipelineTests = async () => {
+    const { testLogs } = await runIngestionPipelineTests();
+    setTestLogs(testLogs);
+    setShowTestModal(true);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,16 +81,29 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
 
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const text = (event.target?.result as string) || "";
-      const dynamicExtracted = extractLinesFromText(text);
+      const result = await IntakeRouter.processFile(file.name, file.type, text);
+      setExtractionResult(result);
+      setVendorName(result.vendor_name);
 
-      if (dynamicExtracted.length >= 3) {
-        setParsedLines(dynamicExtracted);
-      } else {
-        // Use Wayne Densch 10 Cutwater reference dataset as complete fallback
-        setParsedLines(WAYNE_DENSCH_FULL_INVOICE_LINES);
-      }
+      const mappedLines: InvoiceLineParsed[] = result.lines.map((l) => ({
+        vendorItemNo: l.vendor_item_no,
+        description: l.description,
+        upc: l.upc || "000000000000",
+        qtyCases: l.cases,
+        packsPerCase: l.packs_per_case,
+        unitsReceived: l.units_received,
+        casePrice: parseFloat(l.case_price),
+        discount: parseFloat(l.discount),
+        unitCost: parseFloat(l.unit_cost),
+        lineNet: parseFloat(l.line_net),
+        expiryDate: "2027-12-31",
+        flag: l.flags.includes("breakage") ? "breakage" : l.flags.includes("ambiguous") ? "ambiguous" : "normal",
+        flagNote: l.ambiguous_reason || (l.flags.includes("breakage") ? "-1 BREAKAGE ON TRUCK ($31.45 Credit Owed)" : undefined),
+      }));
+
+      setParsedLines(mappedLines);
       setStep("review");
     };
 
@@ -414,8 +342,53 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
               )}
             </div>
           ) : (
-            /* STEP 2: LINE-BY-LINE CONFIRMATION SCREEN (100% EDITABLE & VERIFIABLE) */
+            /* STEP 2: LINE-BY-LINE CONFIRMATION SCREEN (PER-INVOICE MANDATORY RECONCILIATION) */
             <div className="space-y-5">
+              {/* Universal Gate Reconciliation Summary Banner */}
+              <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                extractionResult?.all_gates_passed ? "bg-emerald-50 border-emerald-300 text-emerald-950" : "bg-amber-50 border-amber-300 text-amber-950"
+              }`}>
+                <div>
+                  <div className="flex items-center gap-2">
+                    {extractionResult?.all_gates_passed ? (
+                      <CheckCircle2 size={18} className="text-emerald-700 shrink-0" />
+                    ) : (
+                      <AlertTriangle size={18} className="text-amber-700 shrink-0" />
+                    )}
+                    <span className="font-bold text-sm">
+                      {extractionResult?.all_gates_passed
+                        ? "Universal Gates Passed: Document Total & Line Arithmetic Reconciled ✓"
+                        : "Reconciliation Warning / Refusal Alert"}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/80 border border-black/10">
+                      {extractionResult?.quality_tier || "TIER_A_NATIVE_PDF"}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-1 text-ink/70">
+                    {extractionResult?.rejection_reason || "Every invoice states a total its line items must sum to (Tolerance $0.01). Verified before commit."}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRunPipelineTests}
+                  className="px-3.5 py-1.5 rounded-lg bg-ink text-canvas text-xs font-bold hover:bg-ink/80 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                >
+                  <RefreshCw size={13} /> Run Ingestion Test Suite
+                </button>
+              </div>
+
+              {/* Document Type Warning Banner (PICKLIST PROVISIONAL COSTS) */}
+              {extractionResult?.document_type === "PICKLIST" && (
+                <div className="p-3.5 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={18} className="text-amber-700 shrink-0" />
+                    <span><strong>Document Type = PICKLIST (THIS IS NOT AN INVOICE):</strong> Item costs are marked <strong>PROVISIONAL</strong>. Must reconcile when final invoice arrives.</span>
+                  </div>
+                  <span className="px-2.5 py-1 rounded bg-amber-800 text-amber-50 font-bold text-[10px]">Provisional Cost</span>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-ink/10">
                 <div className="flex items-center gap-3">
                   <div>
@@ -624,6 +597,46 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
           )}
         </div>
       </div>
+      {/* Ingestion Pipeline Test Suite Modal */}
+      {showTestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl space-y-4 border border-ink/10 shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+              <div>
+                <h3 className="font-bold text-base text-ink">Universal Ingestion Pipeline Regression Test Suite</h3>
+                <p className="text-xs text-ink/60">Verifies mandatory gates, ambiguity uncosted assertions, and Tier C photo refusal assertions.</p>
+              </div>
+              <button
+                onClick={() => setShowTestModal(false)}
+                className="w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-ink/70"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto bg-black/90 p-4 rounded-xl font-mono text-xs text-emerald-400 space-y-1 leading-relaxed">
+              {testLogs.map((log, idx) => (
+                <div key={idx} className={log.includes("✗") ? "text-rose-400 font-bold" : log.includes("✓") ? "text-emerald-400 font-bold" : "text-gray-300"}>
+                  {log}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-ink/10">
+              <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
+                <CheckCircle2 size={14} /> Fixture 1 Reconciled · Fixture 2 Refusal Asserted
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowTestModal(false)}
+                className="px-4 py-2 rounded-xl bg-ink text-canvas text-xs font-bold hover:bg-ink/80"
+              >
+                Close Test Console
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

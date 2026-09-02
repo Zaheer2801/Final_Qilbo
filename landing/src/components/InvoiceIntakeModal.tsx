@@ -490,18 +490,17 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                         <th className="px-3 py-2.5 font-semibold">Packs/Case</th>
                         <th className="px-3 py-2.5 font-semibold">Units Recv</th>
                         <th className="px-3 py-2.5 font-semibold">Case Price ($)</th>
-                        <th className="px-3 py-2.5 font-semibold">Unit Cost ($)</th>
                         <th className="px-3 py-2.5 font-semibold">Expiry Date</th>
                         <th className="px-3 py-2.5 font-semibold">Line Net</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-ink/5">
                       {parsedLines.map((line, idx) => (
-                        <tr key={idx} className={line.flag === "breakage" ? "bg-amber-50/80" : "hover:bg-black/2"}>
+                        <tr key={idx} className={line.flag === "ambiguous" ? "bg-amber-100/80 font-medium border-l-4 border-amber-600" : line.flag === "breakage" ? "bg-amber-50/80" : "hover:bg-black/2"}>
                           <td className="px-3 py-2 text-center">
                             <input
                               type="checkbox"
-                              defaultChecked={line.flag !== "breakage"}
+                              defaultChecked={line.flag !== "breakage" && line.flag !== "ambiguous"}
                               className="w-4 h-4 accent-amber-800 rounded cursor-pointer"
                             />
                           </td>
@@ -520,7 +519,33 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                               onChange={(e) => handleLineCellEdit(idx, "description", e.target.value)}
                               className="w-44 px-2 py-1 bg-white border border-ink/15 rounded text-xs font-semibold text-ink"
                             />
-                            {line.flagNote && (
+                            {line.flag === "ambiguous" && (
+                              <div className="mt-1 space-y-1">
+                                <span className="inline-block text-[10px] font-bold text-amber-900 bg-amber-200 px-2 py-0.5 rounded">
+                                  ⚠️ AMBIGUOUS PACK CODE (4/6/16) — UNCOSTED
+                                </span>
+                                <div className="flex items-center gap-1 text-[11px]">
+                                  <span className="text-ink/70 font-normal">Confirm pack size:</span>
+                                  <select
+                                    onChange={(e) => {
+                                      const packs = Number(e.target.value);
+                                      const updated = [...parsedLines];
+                                      updated[idx].packsPerCase = packs;
+                                      updated[idx].unitsReceived = updated[idx].qtyCases * packs;
+                                      updated[idx].unitCost = packs > 0 ? (updated[idx].casePrice - updated[idx].discount) / packs : 0;
+                                      updated[idx].flag = "normal";
+                                      setParsedLines(updated);
+                                    }}
+                                    className="bg-white border border-amber-400 rounded px-1.5 py-0.5 text-xs font-bold text-amber-900 cursor-pointer"
+                                  >
+                                    <option value="0">Select...</option>
+                                    <option value="6">6 six-packs (Case)</option>
+                                    <option value="24">24 singles (POS Format)</option>
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+                            {line.flagNote && line.flag !== "ambiguous" && (
                               <span className="block text-[10px] text-amber-800 font-normal mt-0.5">{line.flagNote}</span>
                             )}
                           </td>
@@ -543,13 +568,13 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                           <td className="px-3 py-2">
                             <input
                               type="number"
-                              value={line.packsPerCase}
+                              value={line.packsPerCase || 0}
                               onChange={(e) => handleLineCellEdit(idx, "packsPerCase", Number(e.target.value))}
                               className="w-12 px-1.5 py-1 bg-white border border-ink/15 rounded text-xs text-ink/80"
                             />
                           </td>
                           <td className="px-3 py-2 font-bold text-emerald-800 font-mono text-center">
-                            {line.unitsReceived} units
+                            {line.flag === "ambiguous" ? "N/A" : `${line.unitsReceived} units`}
                           </td>
                           <td className="px-3 py-2">
                             <input
@@ -560,8 +585,12 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                               className="w-16 px-1.5 py-1 bg-white border border-ink/15 rounded text-xs font-semibold text-ink"
                             />
                           </td>
-                          <td className="px-3 py-2 font-bold text-amber-900 font-mono">
-                            ${line.unitCost.toFixed(2)}
+                          <td className="px-3 py-2 font-bold font-mono">
+                            {line.flag === "ambiguous" || line.unitCost === 0 ? (
+                              <span className="text-amber-800 text-[10px] font-bold bg-amber-200 px-1.5 py-0.5 rounded">UNCOSTED</span>
+                            ) : (
+                              <span className="text-amber-900">${line.unitCost.toFixed(2)}</span>
+                            )}
                           </td>
                           <td className="px-3 py-2">
                             <input

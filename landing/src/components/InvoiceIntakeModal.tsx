@@ -16,6 +16,8 @@ export interface InvoiceLineParsed {
   discount: number;
   unitCost: number;
   lineNet: number;
+  targetMargin: number; // e.g. 30 (%)
+  sellingPrice: number; // e.g. 13.83 ($)
   expiryDate?: string;
   flag?: "normal" | "breakage" | "ambiguous" | "provisional_cost";
   flagNote?: string;
@@ -85,21 +87,29 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
       setExtractionResult(result);
       setVendorName(result.vendor_name);
 
-      const mappedLines: InvoiceLineParsed[] = result.lines.map((l) => ({
-        vendorItemNo: l.vendor_item_no,
-        description: l.description,
-        upc: l.upc || "000000000000",
-        qtyCases: l.cases,
-        packsPerCase: l.packs_per_case,
-        unitsReceived: l.units_received,
-        casePrice: parseFloat(l.case_price),
-        discount: parseFloat(l.discount),
-        unitCost: parseFloat(l.unit_cost),
-        lineNet: parseFloat(l.line_net),
-        expiryDate: "2027-12-31",
-        flag: l.flags.includes("breakage") ? "breakage" : l.flags.includes("ambiguous") ? "ambiguous" : "normal",
-        flagNote: l.ambiguous_reason || (l.flags.includes("breakage") ? "-1 BREAKAGE ON TRUCK ($31.45 Credit Owed)" : undefined),
-      }));
+      const mappedLines: InvoiceLineParsed[] = result.lines.map((l) => {
+        const uCost = parseFloat(l.unit_cost);
+        const margin = 30; // default 30% gross margin
+        const sPrice = uCost > 0 ? Number((uCost / (1 - margin / 100)).toFixed(2)) : 0;
+
+        return {
+          vendorItemNo: l.vendor_item_no,
+          description: l.description,
+          upc: l.upc || "000000000000",
+          qtyCases: l.cases,
+          packsPerCase: l.packs_per_case,
+          unitsReceived: l.units_received,
+          casePrice: parseFloat(l.case_price),
+          discount: parseFloat(l.discount),
+          unitCost: uCost,
+          lineNet: parseFloat(l.line_net),
+          targetMargin: margin,
+          sellingPrice: sPrice,
+          expiryDate: "2027-12-31",
+          flag: l.flags.includes("breakage") ? "breakage" : l.flags.includes("ambiguous") ? "ambiguous" : "normal",
+          flagNote: l.ambiguous_reason || (l.flags.includes("breakage") ? "-1 BREAKAGE ON TRUCK ($31.45 Credit Owed)" : undefined),
+        };
+      });
 
       setParsedLines(mappedLines);
       setStep("review");
@@ -114,7 +124,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
     processUploadedFile(file);
   };
 
-  // Inline Cell Edit Handler (Guarantees 100% Precision)
+  // Inline Cell Edit Handler (Guarantees 100% Precision & Selling Price Math)
   const handleLineCellEdit = (index: number, field: keyof InvoiceLineParsed, value: any) => {
     setParsedLines((prev) => {
       const updated = [...prev];
@@ -127,8 +137,28 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
       const disc = Number(line.discount) || 0;
 
       line.unitsReceived = line.flag === "breakage" ? 0 : cases * packs;
-      line.unitCost = packs > 0 ? Number(((price - disc) / packs).toFixed(2)) : Number((price - disc).toFixed(2));
+      line.unitCost = packs > 0 ? Number(((price - disc) / packs).toFixed(4)) : Number((price - disc).toFixed(4));
       line.lineNet = Number((cases * price - disc).toFixed(2));
+
+      // Dynamic Gross Margin & Selling Price Recalculation Math
+      if (field === "targetMargin") {
+        const margin = Number(value) || 0;
+        line.targetMargin = margin;
+        line.sellingPrice = line.unitCost > 0 && margin < 100
+          ? Number((line.unitCost / (1 - margin / 100)).toFixed(2))
+          : 0;
+      } else if (field === "sellingPrice") {
+        const sPrice = Number(value) || 0;
+        line.sellingPrice = sPrice;
+        line.targetMargin = sPrice > 0 && line.unitCost > 0
+          ? Number((((sPrice - line.unitCost) / sPrice) * 100).toFixed(1))
+          : 0;
+      } else {
+        const margin = Number(line.targetMargin) ?? 30;
+        line.sellingPrice = line.unitCost > 0 && margin < 100
+          ? Number((line.unitCost / (1 - margin / 100)).toFixed(2))
+          : 0;
+      }
 
       updated[index] = line;
       return updated;
@@ -143,6 +173,9 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
     const units = cases * packs;
     const unitC = packs > 0 ? caseP / packs : caseP;
 
+    const margin = 30;
+    const sPrice = unitC > 0 ? Number((unitC / (1 - margin / 100)).toFixed(2)) : 0;
+
     const newLine: InvoiceLineParsed = {
       vendorItemNo: `M${Math.floor(1000 + Math.random() * 9000)}`,
       description: manualDesc,
@@ -154,6 +187,8 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
       discount: 0,
       unitCost: Number(unitC.toFixed(2)),
       lineNet: Number((cases * caseP).toFixed(2)),
+      targetMargin: margin,
+      sellingPrice: sPrice,
       expiryDate: "2027-12-31",
       flag: "normal",
     };
@@ -474,6 +509,8 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                           discount: 4.45,
                           unitCost: 9.68,
                           lineNet: 58.10,
+                          targetMargin: 30,
+                          sellingPrice: 13.83,
                           expiryDate: "2028-06-30",
                           flag: "normal",
                         },
@@ -486,18 +523,21 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#FAF8F5] text-ink/60 border-b border-ink/10">
+                    <thead className="bg-[#FAF8F5] text-ink/70 border-b border-ink/10">
                       <tr>
-                        <th className="px-3 py-2.5 font-semibold text-center">Confirm</th>
-                        <th className="px-3 py-2.5 font-semibold">Item #</th>
-                        <th className="px-3 py-2.5 font-semibold">Description</th>
-                        <th className="px-3 py-2.5 font-semibold">UPC (TEXT)</th>
-                        <th className="px-3 py-2.5 font-semibold">Cases</th>
-                        <th className="px-3 py-2.5 font-semibold">Packs/Case</th>
-                        <th className="px-3 py-2.5 font-semibold">Units Recv</th>
-                        <th className="px-3 py-2.5 font-semibold">Case Price ($)</th>
-                        <th className="px-3 py-2.5 font-semibold">Expiry Date</th>
-                        <th className="px-3 py-2.5 font-semibold">Line Net</th>
+                        <th className="px-3 py-2.5 font-bold text-center">Status</th>
+                        <th className="px-3 py-2.5 font-bold">Vendor Item #</th>
+                        <th className="px-3 py-2.5 font-bold">Product Name / Description</th>
+                        <th className="px-3 py-2.5 font-bold">UPC / Barcode</th>
+                        <th className="px-3 py-2.5 font-bold text-center">Qty (Cases)</th>
+                        <th className="px-3 py-2.5 font-bold text-center">Pack Size</th>
+                        <th className="px-3 py-2.5 font-bold text-center">Total Units</th>
+                        <th className="px-3 py-2.5 font-bold">Case Price ($)</th>
+                        <th className="px-3 py-2.5 font-bold">Unit Cost ($)</th>
+                        <th className="px-3 py-2.5 font-bold text-amber-900 bg-amber-50/60">Target Margin (%)</th>
+                        <th className="px-3 py-2.5 font-bold text-emerald-900 bg-emerald-50/60">Selling Price ($)</th>
+                        <th className="px-3 py-2.5 font-bold">Expiration Date</th>
+                        <th className="px-3 py-2.5 font-bold">Line Net ($)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-ink/5">
@@ -539,6 +579,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                                       updated[idx].packsPerCase = packs;
                                       updated[idx].unitsReceived = updated[idx].qtyCases * packs;
                                       updated[idx].unitCost = packs > 0 ? (updated[idx].casePrice - updated[idx].discount) / packs : 0;
+                                      updated[idx].sellingPrice = updated[idx].unitCost > 0 ? Number((updated[idx].unitCost / 0.7).toFixed(2)) : 0;
                                       updated[idx].flag = "normal";
                                       setParsedLines(updated);
                                     }}
@@ -563,20 +604,20 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                               className="w-28 px-2 py-1 bg-white border border-amber-300 rounded text-xs font-mono font-bold text-amber-900"
                             />
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-3 py-2 text-center">
                             <input
                               type="number"
                               value={line.qtyCases}
                               onChange={(e) => handleLineCellEdit(idx, "qtyCases", Number(e.target.value))}
-                              className="w-12 px-1.5 py-1 bg-white border border-ink/15 rounded text-xs font-bold text-ink"
+                              className="w-12 px-1.5 py-1 bg-white border border-ink/15 rounded text-xs font-bold text-ink text-center"
                             />
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-3 py-2 text-center">
                             <input
                               type="number"
                               value={line.packsPerCase || 0}
                               onChange={(e) => handleLineCellEdit(idx, "packsPerCase", Number(e.target.value))}
-                              className="w-12 px-1.5 py-1 bg-white border border-ink/15 rounded text-xs text-ink/80"
+                              className="w-12 px-1.5 py-1 bg-white border border-ink/15 rounded text-xs text-ink/80 text-center"
                             />
                           </td>
                           <td className="px-3 py-2 font-bold text-emerald-800 font-mono text-center">
@@ -596,6 +637,43 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                               <span className="text-amber-800 text-[10px] font-bold bg-amber-200 px-1.5 py-0.5 rounded">UNCOSTED</span>
                             ) : (
                               <span className="text-amber-900">${line.unitCost.toFixed(2)}</span>
+                            )}
+                          </td>
+                          {/* Target Selling Margin % Input */}
+                          <td className="px-3 py-2 bg-amber-50/30">
+                            {line.flag === "ambiguous" || line.unitCost === 0 ? (
+                              <span className="text-ink/40 text-[11px]">N/A</span>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  min="0"
+                                  max="99"
+                                  value={line.targetMargin ?? 30}
+                                  onChange={(e) => handleLineCellEdit(idx, "targetMargin", Number(e.target.value))}
+                                  className="w-14 px-1 py-1 bg-white border border-amber-300 rounded text-xs font-bold text-amber-900 text-right focus:ring-1 focus:ring-amber-500"
+                                />
+                                <span className="text-xs font-bold text-amber-900">%</span>
+                              </div>
+                            )}
+                          </td>
+                          {/* Dynamically Recalculated Retail Selling Price $ Input */}
+                          <td className="px-3 py-2 bg-emerald-50/30">
+                            {line.flag === "ambiguous" || line.unitCost === 0 ? (
+                              <span className="text-ink/40 text-[11px]">N/A</span>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs font-bold text-emerald-900">$</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={line.sellingPrice ?? 0}
+                                  onChange={(e) => handleLineCellEdit(idx, "sellingPrice", Number(e.target.value))}
+                                  className="w-20 px-1.5 py-1 bg-white border border-emerald-400 rounded text-xs font-bold text-emerald-900 text-right focus:ring-1 focus:ring-emerald-500 shadow-2xs"
+                                />
+                              </div>
                             )}
                           </td>
                           <td className="px-3 py-2">

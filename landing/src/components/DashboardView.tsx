@@ -158,53 +158,87 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
   // Edit product modal state
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
 
+  // Pack-Size Categorization (Strictly isolates 4-packs from 24-packs / suitcases)
+  const getPackSizeCategory = (name: string): string => {
+    const upper = name.toUpperCase();
+    if (upper.includes("6/4/") || upper.includes("4PK") || upper.includes("4-PACK") || upper.includes("4 PACK")) {
+      return "4-pack";
+    }
+    if (upper.includes("24/12") || upper.includes("SUITCASE") || upper.includes("24-PACK") || upper.includes("24 PACK")) {
+      return "24-pack";
+    }
+    if (upper.includes("2/12/") || upper.includes("12PK") || upper.includes("12-PACK") || upper.includes("12 PACK")) {
+      return "12-pack";
+    }
+    if (upper.includes("6PK") || upper.includes("6-PACK") || upper.includes("6 PACK")) {
+      return "6-pack";
+    }
+    return "unit";
+  };
+
   // AI Copilot Price Sync Popup State
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [copilotTargetProduct, setCopilotTargetProduct] = useState<StoreProduct | null>(null);
   const [copilotNewPrice, setCopilotNewPrice] = useState<number>(0);
   const [copilotMatchingGroup, setCopilotMatchingGroup] = useState<StoreProduct[]>([]);
+  const [copilotPackCategory, setCopilotPackCategory] = useState<string>("4-pack");
 
   // Triggered whenever a product price is edited
   const triggerPriceChangeCopilot = (product: StoreProduct, newPriceVal: number) => {
     const brandName = (product.brand || product.name.split(" ")[0]).toUpperCase();
-    const matching = products.filter(
-      (p) => (p.brand || p.name.split(" ")[0]).toUpperCase() === brandName && p.id !== product.id
-    );
+    const packCat = getPackSizeCategory(product.name);
 
-    // Update single item first
+    // Update single item price in local state IMMEDIATELY (never block user override)
     const updatedProds = products.map((p) => (p.id === product.id ? { ...p, price: newPriceVal } : p));
     setProducts(updatedProds);
+    addLog("Single Price Override", `Overrode price for ${product.name} to $${newPriceVal.toFixed(2)}`, "override");
 
-    // If there are sister products in the same brand family (e.g. Cutwater 4-packs), open AI Copilot Chatbot Popup!
+    // Strictly match products that share BOTH the Brand AND the Pack Category (e.g. 4-packs ONLY match 4-packs!)
+    const matching = products.filter((p) => {
+      if (p.id === product.id) return false;
+      const pBrand = (p.brand || p.name.split(" ")[0]).toUpperCase();
+      const pPack = getPackSizeCategory(p.name);
+      return pBrand === brandName && pPack === packCat;
+    });
+
+    // If there are sister products in the EXACT same brand family AND pack size (e.g. Cutwater 4-packs), open AI Copilot Chatbot Popup!
     if (matching.length > 0) {
       setCopilotTargetProduct(product);
       setCopilotNewPrice(newPriceVal);
+      setCopilotPackCategory(packCat);
       setCopilotMatchingGroup(matching);
       setCopilotOpen(true);
     }
   };
 
-  const handleApplyBatchPrice = (brandName: string, priceVal: number) => {
+  const handleApplyBatchPrice = (brandName: string, packCat: string, priceVal: number) => {
     const brandUpper = brandName.toUpperCase();
-    const updated = products.map((p) =>
-      (p.brand || p.name.split(" ")[0]).toUpperCase() === brandUpper ? { ...p, price: priceVal } : p
-    );
+    const updated = products.map((p) => {
+      const pBrand = (p.brand || p.name.split(" ")[0]).toUpperCase();
+      const pPack = getPackSizeCategory(p.name);
+      if (pBrand === brandUpper && pPack === packCat) {
+        return { ...p, price: priceVal };
+      }
+      return p;
+    });
     setProducts(updated);
-    addLog("AI Copilot Batch Price Sync", `Applied $${priceVal.toFixed(2)} price across all ${brandName} products in store inventory.`, "edit");
+    addLog("AI Copilot Batch Price Sync", `Applied $${priceVal.toFixed(2)} price across all ${brandName} ${packCat} products.`, "edit");
     setCopilotOpen(false);
   };
 
-  const handleApplyBatchMargin = (brandName: string, marginVal: number) => {
+  const handleApplyBatchMargin = (brandName: string, packCat: string, marginVal: number) => {
     const brandUpper = brandName.toUpperCase();
     const updated = products.map((p) => {
-      if ((p.brand || p.name.split(" ")[0]).toUpperCase() === brandUpper) {
+      const pBrand = (p.brand || p.name.split(" ")[0]).toUpperCase();
+      const pPack = getPackSizeCategory(p.name);
+      if (pBrand === brandUpper && pPack === packCat) {
         const calculatedPrice = p.cost > 0 && marginVal < 100 ? Number((p.cost / (1 - marginVal / 100)).toFixed(2)) : p.price;
         return { ...p, price: calculatedPrice, minMargin: marginVal };
       }
       return p;
     });
     setProducts(updated);
-    addLog("AI Copilot Batch Margin Sync", `Applied ${marginVal}% target gross margin across all ${brandName} products in store inventory.`, "edit");
+    addLog("AI Copilot Batch Margin Sync", `Applied ${marginVal}% target gross margin across all ${brandName} ${packCat} products.`, "edit");
     setCopilotOpen(false);
   };
 
@@ -212,15 +246,16 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
     const matchPrice = promptText.match(/\$?(\d+\.\d{2})/);
     const matchMargin = promptText.match(/(\d+(?:\.\d+)?)%/);
     const brandName = copilotTargetProduct ? (copilotTargetProduct.brand || copilotTargetProduct.name.split(" ")[0]) : "Cutwater";
+    const packCat = copilotPackCategory;
 
     if (matchPrice && matchPrice[1]) {
       const pVal = parseFloat(matchPrice[1]);
-      handleApplyBatchPrice(brandName, pVal);
+      handleApplyBatchPrice(brandName, packCat, pVal);
     } else if (matchMargin && matchMargin[1]) {
       const mVal = parseFloat(matchMargin[1]);
-      handleApplyBatchMargin(brandName, mVal);
+      handleApplyBatchMargin(brandName, packCat, mVal);
     } else {
-      handleApplyBatchPrice(brandName, copilotNewPrice);
+      handleApplyBatchPrice(brandName, packCat, copilotNewPrice);
     }
   };
 
@@ -2060,11 +2095,20 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
         <button
           onClick={() => {
             const defaultItem = products.find((p) => p.name.includes("CUTWATER")) || products[0];
-            setCopilotTargetProduct(defaultItem);
-            setCopilotNewPrice(defaultItem ? defaultItem.price : 14.04);
-            const brandName = defaultItem ? (defaultItem.brand || defaultItem.name.split(" ")[0]).toUpperCase() : "CUTWATER";
-            const matching = products.filter((p) => (p.brand || p.name.split(" ")[0]).toUpperCase() === brandName && p.id !== defaultItem.id);
-            setCopilotMatchingGroup(matching);
+            if (defaultItem) {
+              setCopilotTargetProduct(defaultItem);
+              setCopilotNewPrice(defaultItem.price);
+              const brandName = (defaultItem.brand || defaultItem.name.split(" ")[0]).toUpperCase();
+              const packCat = getPackSizeCategory(defaultItem.name);
+              setCopilotPackCategory(packCat);
+              const matching = products.filter((p) => {
+                if (p.id === defaultItem.id) return false;
+                const pBrand = (p.brand || p.name.split(" ")[0]).toUpperCase();
+                const pPack = getPackSizeCategory(p.name);
+                return pBrand === brandName && pPack === packCat;
+              });
+              setCopilotMatchingGroup(matching);
+            }
             setCopilotOpen(true);
           }}
           className="flex items-center gap-2 px-4 py-3 rounded-full bg-amber-800 hover:bg-amber-900 text-amber-50 text-xs font-bold shadow-xl border border-amber-400/30 transition-all transform hover:scale-105 cursor-pointer group"
@@ -2081,6 +2125,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
         onClose={() => setCopilotOpen(false)}
         targetProduct={copilotTargetProduct}
         newPrice={copilotNewPrice}
+        packCategory={copilotPackCategory}
         matchingGroup={copilotMatchingGroup}
         onApplyBatchPrice={handleApplyBatchPrice}
         onApplyBatchMargin={handleApplyBatchMargin}

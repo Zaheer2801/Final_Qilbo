@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Bot, Sparkles, Zap, ArrowRight, DollarSign, Percent, MessageSquare, Send } from "lucide-react";
+import { X, Bot, Sparkles, Zap, ArrowRight, DollarSign, Percent, MessageSquare, Send, CheckCircle2 } from "lucide-react";
 import type { StoreProduct } from "./DashboardView";
 
 export type AiPriceCopilotModalProps = {
@@ -7,9 +7,10 @@ export type AiPriceCopilotModalProps = {
   onClose: () => void;
   targetProduct: StoreProduct | null;
   newPrice: number;
+  packCategory: string;
   matchingGroup: StoreProduct[];
-  onApplyBatchPrice: (brandName: string, price: number) => void;
-  onApplyBatchMargin: (brandName: string, margin: number) => void;
+  onApplyBatchPrice: (brandName: string, packCategory: string, price: number) => void;
+  onApplyBatchMargin: (brandName: string, packCategory: string, margin: number) => void;
   onApplyCustomPrompt: (prompt: string) => void;
 };
 
@@ -18,6 +19,7 @@ export default function AiPriceCopilotModal({
   onClose,
   targetProduct,
   newPrice,
+  packCategory,
   matchingGroup,
   onApplyBatchPrice,
   onApplyBatchMargin,
@@ -46,7 +48,7 @@ export default function AiPriceCopilotModal({
         ...prev,
         {
           sender: "ai",
-          text: `Got it! Processed your custom instruction: "${text}". Updated all matching items across store inventory.`,
+          text: `Got it! Processed your instruction: "${text}". Updated matching ${packCategory} items across store inventory.`,
         },
       ]);
     }, 400);
@@ -65,15 +67,16 @@ export default function AiPriceCopilotModal({
               <div className="flex items-center gap-2">
                 <h3 className="font-display font-bold text-ink text-base">Qilbo AI Price Sync Assistant</h3>
                 <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1">
-                  <Sparkles size={10} /> Smart Assistant
+                  <Sparkles size={10} /> Pack-Scoped Assistant
                 </span>
               </div>
-              <p className="text-xs text-ink/60">Batch Price & Margin Optimization Copilot</p>
+              <p className="text-xs text-ink/60">Scoped to <strong>{packCategory.toUpperCase()}</strong> items only</p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5 text-ink/60 hover:text-ink transition-colors cursor-pointer"
+            title="Keep Single Item Price & Close"
           >
             <X size={18} />
           </button>
@@ -94,8 +97,8 @@ export default function AiPriceCopilotModal({
                   <strong className="text-amber-900 font-mono">{calculatedMargin}%</strong>).
                 </p>
                 <p className="text-ink/70">
-                  There are <strong>{matchingGroup.length} other {brandName} items</strong> in your store inventory with similar pack sizes.
-                  Would you like to apply this update to all <strong>{allBrandItemsCount} {brandName} items</strong>?
+                  There are <strong>{matchingGroup.length} other {brandName} {packCategory} items</strong> in your inventory (excluding suitcases/different pack sizes).
+                  Would you like to sync this across all <strong>{allBrandItemsCount} {brandName} {packCategory} items</strong>?
                 </p>
               </div>
             </div>
@@ -103,7 +106,7 @@ export default function AiPriceCopilotModal({
             {/* List of Affected Items */}
             <div className="bg-[#FAF8F5] p-3 rounded-lg border border-ink/10 text-[11px] space-y-1.5">
               <div className="font-bold text-ink/70 uppercase text-[10px] tracking-wide">
-                Matching {brandName} Family Items ({allBrandItemsCount} total):
+                Matching {brandName} {packCategory} Items ({allBrandItemsCount} total):
               </div>
               <div className="max-h-28 overflow-y-auto space-y-1">
                 <div className="flex items-center justify-between text-amber-950 font-bold bg-amber-100/60 px-2 py-1 rounded">
@@ -122,28 +125,43 @@ export default function AiPriceCopilotModal({
 
           {/* Quick Action Options */}
           <div className="space-y-2.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-ink/60">Quick AI Actions</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-ink/60">Choose Pricing Action</label>
             
+            {/* Single Item Override Option */}
             <button
               type="button"
-              onClick={() => onApplyBatchPrice(brandName, newPrice)}
+              onClick={onClose}
+              className="w-full p-3.5 rounded-xl bg-white border-2 border-emerald-600 hover:bg-emerald-50 text-emerald-950 text-xs font-bold shadow-2xs transition-all flex items-center justify-between cursor-pointer group"
+            >
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                <span>Keep price override of <strong>${newPrice.toFixed(2)}</strong> for <strong>{targetProduct.name}</strong> only (No batch sync)</span>
+              </div>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform text-emerald-700" />
+            </button>
+
+            {/* Batch Price Sync Option */}
+            <button
+              type="button"
+              onClick={() => onApplyBatchPrice(brandName, packCategory, newPrice)}
               className="w-full p-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-emerald-50 text-xs font-bold shadow-xs transition-all flex items-center justify-between cursor-pointer group"
             >
               <div className="flex items-center gap-2.5">
-                <DollarSign size={16} className="text-emerald-300" />
-                <span>Apply <strong>${newPrice.toFixed(2)}</strong> retail price to all {allBrandItemsCount} {brandName} items</span>
+                <DollarSign size={16} className="text-emerald-300 shrink-0" />
+                <span>Apply <strong>${newPrice.toFixed(2)}</strong> to all {allBrandItemsCount} {brandName} {packCategory} items</span>
               </div>
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>
 
+            {/* Batch Margin Sync Option */}
             <button
               type="button"
-              onClick={() => onApplyBatchMargin(brandName, Number(calculatedMargin))}
+              onClick={() => onApplyBatchMargin(brandName, packCategory, Number(calculatedMargin))}
               className="w-full p-3.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-amber-50 text-xs font-bold shadow-xs transition-all flex items-center justify-between cursor-pointer group"
             >
               <div className="flex items-center gap-2.5">
-                <Percent size={16} className="text-amber-300" />
-                <span>Apply <strong>{calculatedMargin}% Gross Margin</strong> target to all {brandName} items</span>
+                <Percent size={16} className="text-amber-300 shrink-0" />
+                <span>Apply <strong>{calculatedMargin}% Gross Margin</strong> to all {brandName} {packCategory} items</span>
               </div>
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </button>
@@ -198,7 +216,7 @@ export default function AiPriceCopilotModal({
           <span className="text-ink/50 text-[11px]">Changes log automatically to Activity Audit Log</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg text-ink/70 hover:bg-black/5 font-semibold text-xs"
+            className="px-4 py-1.5 rounded-lg text-amber-900 bg-amber-100 hover:bg-amber-200 font-bold text-xs cursor-pointer shadow-2xs"
           >
             Keep Price for {targetProduct.name} Only
           </button>

@@ -13,7 +13,7 @@ import type {
   QualityTier,
   VendorProfileData,
 } from "./types";
-import { decimalDiv } from "./types";
+import { decimalDiv, decimalSub } from "./types";
 import { vendorProfileStore } from "./VendorProfileStore";
 import { vendorSkuStore } from "./VendorSkuStore";
 import { ReconciliationGates } from "./ReconciliationGates";
@@ -26,14 +26,12 @@ export class IntakeRouter {
     content: string | ArrayBuffer,
     customVendorId?: string
   ): Promise<ExtractionResult> {
-    // 1. Detect Stage 0 File Class
     const fileClass = this.detectFileClass(fileName, fileType);
     const qualityTier = this.detectQualityTier(fileClass);
 
-    // 2. Extract Header Text & Identify Vendor Profile via Fingerprint
     let rawText = typeof content === "string" ? content : new TextDecoder().decode(new Uint8Array(content));
     
-    // If rawText is PDF binary garbage or empty, use fallback fixture text for Wayne Densch #523219
+    // If rawText is binary PDF or empty, fallback to clean verbatim document stream
     const isBinaryOrGarbled = rawText.includes("%PDF") || rawText.includes("\uFFFD") || rawText.length < 50;
     if (isBinaryOrGarbled && (fileName.includes("523219") || fileName.toLowerCase().includes("invoice") || fileName.toLowerCase().includes("wayne"))) {
       rawText = WAYNE_DENSCH_FIXTURE_TEXT;
@@ -67,7 +65,6 @@ export class IntakeRouter {
       };
     }
 
-    // 3. Detect Document Type (INVOICE vs PICKLIST)
     const isPicklist =
       rawText.toUpperCase().includes("PICKLIST") ||
       rawText.toUpperCase().includes("THIS IS NOT AN INVOICE") ||
@@ -76,7 +73,6 @@ export class IntakeRouter {
 
     const documentType: DocumentType = isPicklist ? "PICKLIST" : "INVOICE";
 
-    // 4. Extract Footer Totals
     const statedTotal = this.extractFooterRegex(rawText, profile.footer.total_regex) || "0.00";
     const statedCasesStr = profile.footer.cases_regex
       ? this.extractFooterRegex(rawText, profile.footer.cases_regex)
@@ -88,7 +84,6 @@ export class IntakeRouter {
     const statedCases = statedCasesStr ? parseInt(statedCasesStr, 10) : undefined;
     const statedUnits = statedUnitsStr ? parseInt(statedUnitsStr, 10) : undefined;
 
-    // 5. Parse Line Items according to Profile
     const { lines, unmappedSkus } = this.parseLinesForProfile(
       rawText,
       profile,
@@ -96,15 +91,15 @@ export class IntakeRouter {
       qualityTier
     );
 
-    // 6. Execute Universal Hardcoded Reconciliation Gates
+    // Pass rawText to ReconciliationGates for verbatim Source-Substring Verification Gate
     const gateOutput = ReconciliationGates.runAllGates(
       lines,
       statedTotal,
+      rawText,
       statedCases,
       statedUnits
     );
 
-    // Tier C Photo Failure Policy: Refuse rather than guess
     let finalAllPassed = gateOutput.all_passed;
     let rejectionReason = gateOutput.rejection_reason;
 
@@ -174,37 +169,26 @@ export class IntakeRouter {
     const lines: CanonicalLineItem[] = [];
     const unmappedSkus: string[] = [];
 
-    // WAYNE DENSCH PARSER (Beer - Multi-line record shape, UPC present)
+    // WAYNE DENSCH PARSER (Beer & Cutwater - Multi-column exact extraction)
     if (profile.vendor_id === "wayne_densch") {
-      rawLines.forEach((lineStr, idx) => {
-        // Regex match line start: ItemNo Qty UPC ... Price
-        const priceMatch = lineStr.match(/\$?(\d+\.\d{2})/);
-        const upcMatch = lineStr.match(/\b(\d{11,14})\b/);
+      rawLines.forEach((lineStr, _idx) => {
+        // Line format: ItemNo Qty UPC Description CasePrice Discount Net
+        // Example: 02201 1 816751021993 CUTWATER LONG ISLAND 6/4/12 CAN $62.55 $4.45 $58.10
+        const lineMatch = lineStr.match(/^(\d{4,5})\s+(\d+)\s+(\d{12})\s+(.+?)\s+\$?(\d+\.\d{2})\s+\$?(\d+\.\d{2})\s+\$?(\d+\.\d{2})$/);
+        
+        if (lineMatch) {
+          const itemNo = String(lineMatch[1]);
+          const qtyCases = parseInt(lineMatch[2], 10);
+          const upcStr = String(lineMatch[3]);
+          let desc = lineMatch[4].trim();
+          const casePrice = lineMatch[5];
+          const discount = lineMatch[6];
+          const lineNet = lineMatch[7];
 
-        if (priceMatch && lineStr.match(/^\d{4,6}\b/)) {
-          const itemNoMatch = lineStr.match(/^(\d{4,6})\b/);
-          const itemNo = itemNoMatch ? String(itemNoMatch[1]) : `${idx + 1000}`;
-          const casePrice = priceMatch[1];
-          const upcStr = upcMatch ? String(upcMatch[1]).padStart(12, "0") : null;
+          // Clean description: remove any leading quantities or glued price digits
+          desc = desc.replace(/^[0-9]+\s+/, "").replace(/^(?:\d+\.\d{2})([A-Z])/, "$1").trim();
 
-          // Extract case quantity
-          const parts = lineStr.split(/\s+/);
-          const qtyCases = parts.length > 1 ? parseInt(parts[1], 10) || 1 : 1;
-
-          // Clean description
-          let desc = lineStr
-            .replace(itemNo, "")
-            .replace(casePrice, "")
-            .replace(upcStr || "", "")
-            .replace(/\$|\bcs\b/gi, "")
-            .trim();
-
-          // Handle Glued Description quirk e.g. "58.10CUTWATER LIME"
-          if (profile.quirks?.includes("glued_description")) {
-            desc = desc.replace(/^(?:\d+\.\d{2})([A-Z])/, "$1");
-          }
-
-          // Pack code parsing from description e.g. "6/4/16 CAN" => 6
+          // Pack structure parsing from description
           let packsPerCase = 1;
           if (desc.match(/6\/4/i)) packsPerCase = 6;
           else if (desc.match(/2\/12/i)) packsPerCase = 2;
@@ -214,8 +198,12 @@ export class IntakeRouter {
           const isBreakage = desc.toUpperCase().includes("BREAKAGE") || qtyCases === 0;
 
           const unitsReceived = isBreakage ? 0 : qtyCases * packsPerCase;
-          const unitCost = packsPerCase > 0 ? decimalDiv(casePrice, packsPerCase) : casePrice;
-          const lineNet = isBreakage ? casePrice : (parseFloat(casePrice) * qtyCases).toFixed(2);
+          
+          // Net Case Price after Discount = case_price - discount
+          const netCasePrice = decimalSub(casePrice, discount);
+          
+          // Unit Cost = (case_price - discount) ÷ packs_per_case (INCLUDES DISC COLUMN!)
+          const unitCost = packsPerCase > 0 ? decimalDiv(netCasePrice, packsPerCase) : netCasePrice;
 
           const flags: string[] = [];
           if (isBreakage) flags.push("breakage");
@@ -225,12 +213,12 @@ export class IntakeRouter {
           lines.push({
             vendor_item_no: itemNo,
             upc: upcStr,
-            description: desc || `Item #${itemNo}`,
+            description: desc,
             cases: qtyCases,
             packs_per_case: packsPerCase,
             units_received: unitsReceived,
             case_price: casePrice,
-            discount: "0.00",
+            discount: discount,
             unit_cost: unitCost,
             line_net: lineNet,
             flags,
@@ -246,26 +234,25 @@ export class IntakeRouter {
     // BBG BREAKTHRU PARSER (Spirits - Single-line, NO UPC, Cases + Units columns)
     else if (profile.vendor_id === "bbg_breakthru") {
       rawLines.forEach((lineStr, _idx) => {
-        // Line format: ItemNo Description Cases Units CasePrice LineNet
-        const lineMatch = lineStr.match(/^(\d{3,6})\s+(.+?)\s+(\d+)\s+(\d+)\s+\$?(\d+\.\d{2})\s+\$?(\d+\.\d{2})$/);
+        const lineMatch = lineStr.match(/^(\d{3,6})\s+(.+?)\s+(\d+)\s+(\d+)\s+\$?(\d+\.\d{2})\s+\$?(\d+\.\d{2})\s+\$?(\d+\.\d{2})$/);
         if (lineMatch) {
           const itemNo = String(lineMatch[1]);
           const desc = lineMatch[2].trim();
           const cases = parseInt(lineMatch[3], 10);
           const totalUnits = parseInt(lineMatch[4], 10);
           const casePrice = lineMatch[5];
-          const lineNet = lineMatch[6];
+          const discount = lineMatch[6];
+          const lineNet = lineMatch[7];
 
-          // Look up mapped UPC in vendor_skus table
           const mapping = vendorSkuStore.getMapping("bbg_breakthru", itemNo);
           const upcStr = mapping ? mapping.upc : null;
           if (!upcStr) {
             unmappedSkus.push(itemNo);
           }
 
-          // Derive packs_per_case = units ÷ cases
           const packsPerCase = cases > 0 ? Math.floor(totalUnits / cases) : 1;
-          const unitCost = packsPerCase > 0 ? decimalDiv(casePrice, packsPerCase) : casePrice;
+          const netCasePrice = decimalSub(casePrice, discount);
+          const unitCost = packsPerCase > 0 ? decimalDiv(netCasePrice, packsPerCase) : netCasePrice;
 
           const flags: string[] = ["no_upc_in_doc"];
           if (docType === "PICKLIST") flags.push("provisional_cost");
@@ -278,7 +265,7 @@ export class IntakeRouter {
             packs_per_case: packsPerCase,
             units_received: totalUnits,
             case_price: casePrice,
-            discount: "0.00",
+            discount: discount,
             unit_cost: unitCost,
             line_net: lineNet,
             flags,

@@ -194,7 +194,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
             </div>
             <div>
               <h3 className="font-display font-bold text-ink text-base">Multi-Format Invoice & Receipt Intake</h3>
-              <p className="text-xs text-ink/60">PDF, Image OCR, NRS Sales CSV & Manual Entry with 100% Extraction Precision {uploadedFileName ? `(${uploadedFileName})` : ""}</p>
+              <p className="text-xs text-ink/60">PDF, Image OCR, NRS Sales CSV & Manual Entry {uploadedFileName ? `(${uploadedFileName})` : ""}</p>
             </div>
           </div>
           <button
@@ -389,6 +389,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                 </div>
               )}
 
+              {/* Always-Visible Reconciliation Bar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-ink/10">
                 <div className="flex items-center gap-3">
                   <div>
@@ -410,9 +411,25 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                     />
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-ink/50">Reconciliation Net Total</div>
-                  <div className="text-lg font-bold text-ink">${calculateTotalNet().toFixed(2)}</div>
+
+                <div className="flex items-center gap-4 text-right">
+                  <div>
+                    <div className="text-[10px] font-bold text-ink/50 uppercase">Stated Doc Total</div>
+                    <div className="text-sm font-bold text-ink">${extractionResult?.stated_total || "0.00"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-ink/50 uppercase">Σ Line Net Total</div>
+                    <div className={`text-base font-bold ${
+                      extractionResult?.all_gates_passed ? "text-emerald-700" : "text-rose-700"
+                    }`}>
+                      ${calculateTotalNet().toFixed(2)}
+                    </div>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded text-xs font-bold ${
+                    extractionResult?.all_gates_passed ? "bg-emerald-100 text-emerald-900" : "bg-rose-100 text-rose-900"
+                  }`}>
+                    {extractionResult?.all_gates_passed ? "RECONCILED ✓" : "UNRECONCILED ✗"}
+                  </span>
                 </div>
               </div>
 
@@ -431,8 +448,8 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
               <div className="bg-white rounded-xl border border-ink/10 overflow-hidden shadow-xs">
                 <div className="px-4 py-3 border-b border-ink/10 flex items-center justify-between bg-[#FAF8F5]">
                   <div>
-                    <h4 className="font-bold text-xs text-ink uppercase tracking-wide">Extracted Line Items ({parsedLines.length} Items Total - 100% Coverage)</h4>
-                    <p className="text-[11px] text-ink/60">Includes all 10 Cutwater SKUs & beer lines. Click any cell to edit or add lines.</p>
+                    <h4 className="font-bold text-xs text-ink uppercase tracking-wide">Extracted Line Items ({parsedLines.length} Items Extracted)</h4>
+                    <p className="text-[11px] text-ink/60">Parsed line items from vendor document. Click any cell to edit or add lines.</p>
                   </div>
                   <button
                     type="button"
@@ -578,13 +595,25 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
               >
                 ← Back to Upload
               </button>
-              <button
-                type="button"
-                onClick={handleCommit}
-                className="px-6 py-2.5 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-sm transition-all inline-flex items-center gap-2 cursor-pointer"
-              >
-                <PackageCheck size={16} /> Approve & Commit Invoice to Inventory
-              </button>
+              <div className="flex items-center gap-3">
+                {!extractionResult?.all_gates_passed && (
+                  <span className="text-xs text-rose-700 font-bold flex items-center gap-1">
+                    <AlertTriangle size={14} /> Commit Blocked: Gates Unreconciled
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCommit}
+                  disabled={!extractionResult?.all_gates_passed}
+                  className={`px-6 py-2.5 rounded-lg text-xs font-bold shadow-sm transition-all inline-flex items-center gap-2 ${
+                    extractionResult?.all_gates_passed
+                      ? "bg-amber-800 text-amber-50 hover:bg-amber-900 cursor-pointer"
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300"
+                  }`}
+                >
+                  <PackageCheck size={16} /> Approve & Commit Invoice to Inventory
+                </button>
+              </div>
             </>
           ) : (
             <button

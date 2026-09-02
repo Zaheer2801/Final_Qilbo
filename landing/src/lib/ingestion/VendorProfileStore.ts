@@ -19,7 +19,7 @@ export const BUILTIN_VENDOR_PROFILES: VendorProfileData[] = [
       pack_source: "description",
     },
     footer: {
-      total_regex: "Total Sales\\s+([\\d,]+\\.\\d{2})",
+      total_regex: "Total Sales\\s+\\$?([\\d,]+\\.\\d{2})",
       cases_regex: "Cases:\\s+(\\d+)",
       units_regex: "Units:\\s+(\\d+)",
     },
@@ -37,7 +37,7 @@ export const BUILTIN_VENDOR_PROFILES: VendorProfileData[] = [
       pack_source: "units_column",
     },
     footer: {
-      total_regex: "Total Sales\\s+([\\d,]+\\.\\d{2})",
+      total_regex: "Total Sales\\s+\\$?([\\d,]+\\.\\d{2})",
       cases_regex: "Cases:\\s+(\\d+)",
       units_regex: "Units:\\s+(\\d+)",
       picklist_indicator: "PICKLIST - THIS IS NOT AN INVOICE",
@@ -55,6 +55,7 @@ class VendorProfileStore {
   }
 
   private loadFromLocalStorage() {
+    if (typeof window === "undefined" || !window.localStorage) return;
     try {
       const saved = localStorage.getItem("qilbo_vendor_profiles_v1");
       if (saved) {
@@ -68,6 +69,7 @@ class VendorProfileStore {
 
   public saveProfile(profile: VendorProfileData): void {
     this.profiles.set(profile.vendor_id, profile);
+    if (typeof window === "undefined" || !window.localStorage) return;
     try {
       const allProfiles = Array.from(this.profiles.values());
       localStorage.setItem("qilbo_vendor_profiles_v1", JSON.stringify(allProfiles));

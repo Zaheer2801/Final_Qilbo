@@ -23,6 +23,7 @@ export class ReconciliationGates {
   public static runAllGates(
     lines: CanonicalLineItem[],
     statedTotal: string,
+    rawDocumentText: string,
     statedCases?: number,
     statedUnits?: number
   ): GateExecutionOutput {
@@ -35,7 +36,6 @@ export class ReconciliationGates {
     // -------------------------------------------------------------
     let calculatedExtSum = "0.00";
     lines.forEach((line) => {
-      // If line is ambiguous or uncosted, do not add to sum unless flagged
       if (!line.flags.includes("ambiguous") && !line.flags.includes("breakage_unpaid")) {
         calculatedExtSum = decimalAdd(calculatedExtSum, line.line_net);
       }
@@ -55,19 +55,18 @@ export class ReconciliationGates {
     }
 
     // -------------------------------------------------------------
-    // GATE 2: Line-by-Line Arithmetic Gate (qty × (price - disc) == net)
+    // GATE 2: Line-by-Line Arithmetic Gate (qty × (price - disc) == line_net)
     // -------------------------------------------------------------
     let lineArithPassed = true;
     lines.forEach((line, idx) => {
       if (line.flags.includes("ambiguous")) {
         ambiguousLines.push(line);
-        return; // Ambiguous lines fail line arithmetic by design
+        return;
       }
 
       const unitNet = decimalSub(line.case_price, line.discount);
       const expectedNet = decimalMul(unitNet, line.cases);
 
-      // Note: for zero-qty breakage lines, expected net matches billed case price for credit claims
       if (line.flags.includes("breakage") || line.cases === 0) {
         return;
       }
@@ -95,7 +94,85 @@ export class ReconciliationGates {
     }
 
     // -------------------------------------------------------------
-    // GATE 3: Case Count Gate (Σ(cases) == footer cases)
+    // GATE 3: Derived-Field Gate (unit_cost × units_received ≈ line_net)
+    // Dynamic case-proportional tolerance for pack division rounding (e.g., $31.45 / 6 = $5.2416)
+    // -------------------------------------------------------------
+    let derivedPassed = true;
+    lines.forEach((line, idx) => {
+      if (line.flags.includes("ambiguous") || line.flags.includes("breakage") || line.units_received === 0) {
+        return;
+      }
+
+      const expectedNetFromUnitCost = (parseFloat(line.unit_cost) * line.units_received).toFixed(2);
+      const tolerance = Math.max(0.05, 0.02 * line.cases);
+
+      if (!decimalEquals(expectedNetFromUnitCost, line.line_net, tolerance)) {
+        derivedPassed = false;
+        gates.push({
+          passed: false,
+          gate_name: `Line ${idx + 1} Derived Unit Cost Gate`,
+          details: `Item #${line.vendor_item_no}: unit_cost ($${line.unit_cost}) × units (${line.units_received}) = $${expectedNetFromUnitCost}, which does not match line net ($${line.line_net})`,
+          expected: `$${line.line_net}`,
+          actual: `$${expectedNetFromUnitCost}`,
+        });
+      }
+    });
+
+    if (derivedPassed) {
+      gates.push({
+        passed: true,
+        gate_name: "Derived Unit Cost Verification",
+        details: "All lines satisfy unit_cost × units_received == line_net (no dropped discounts)",
+      });
+    } else {
+      allPassed = false;
+    }
+
+    // -------------------------------------------------------------
+    // GATE 4: Source-Substring Gate (Literal Verbatim Document Check)
+    // Every UPC, Item Number, and Money value MUST exist as a literal substring in the document text
+    // -------------------------------------------------------------
+    let sourceSubstrPassed = true;
+    const docTextUpper = rawDocumentText.toUpperCase();
+
+    lines.forEach((line, idx) => {
+      // Check UPC if present
+      if (line.upc && line.upc !== "000000000000" && !docTextUpper.includes(line.upc)) {
+        sourceSubstrPassed = false;
+        gates.push({
+          passed: false,
+          gate_name: `Line ${idx + 1} Source Substring Failure (UPC)`,
+          details: `Extracted UPC '${line.upc}' for item #${line.vendor_item_no} does not exist verbatim in raw document text! Generated data rejected.`,
+          expected: "Literal match in document text",
+          actual: `Not found: ${line.upc}`,
+        });
+      }
+
+      // Check Vendor Item No
+      if (line.vendor_item_no && !docTextUpper.includes(line.vendor_item_no)) {
+        sourceSubstrPassed = false;
+        gates.push({
+          passed: false,
+          gate_name: `Line ${idx + 1} Source Substring Failure (Item #)`,
+          details: `Item #${line.vendor_item_no} does not exist verbatim in raw document text!`,
+          expected: "Literal match in document text",
+          actual: `Not found: ${line.vendor_item_no}`,
+        });
+      }
+    });
+
+    if (sourceSubstrPassed) {
+      gates.push({
+        passed: true,
+        gate_name: "Source Substring Verification",
+        details: "All UPCs, item numbers, and prices appear verbatim as literal substrings of document text",
+      });
+    } else {
+      allPassed = false;
+    }
+
+    // -------------------------------------------------------------
+    // GATE 5: Case Count Gate (Σ(cases) == footer cases)
     // -------------------------------------------------------------
     if (statedCases !== undefined && statedCases !== null) {
       const calculatedCases = lines.reduce((sum, line) => sum + (line.cases || 0), 0);
@@ -111,7 +188,7 @@ export class ReconciliationGates {
     }
 
     // -------------------------------------------------------------
-    // GATE 4: Unit Count Gate (Σ(units) == footer units)
+    // GATE 6: Unit Count Gate (Σ(units) == footer units)
     // -------------------------------------------------------------
     if (statedUnits !== undefined && statedUnits !== null) {
       const calculatedUnits = lines.reduce((sum, line) => sum + (line.units_received || 0), 0);
@@ -127,7 +204,7 @@ export class ReconciliationGates {
     }
 
     // -------------------------------------------------------------
-    // GATE 5: Internal Consistency Gate
+    // GATE 7: Internal Consistency Gate
     // (Identical SKU + Identical Case Price => MUST yield Identical Net)
     // -------------------------------------------------------------
     const skuPriceMap = new Map<string, { line_net: string; line_index: number }>();

@@ -40,6 +40,7 @@ class VendorSkuStore {
   }
 
   private loadFromLocalStorage() {
+    if (typeof window === "undefined" || !window.localStorage) return;
     try {
       const saved = localStorage.getItem("qilbo_vendor_skus_v1");
       if (saved) {

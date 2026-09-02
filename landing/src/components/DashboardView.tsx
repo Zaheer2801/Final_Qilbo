@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users, Printer, FileSpreadsheet, BarChart3, PieChart, TrendingUp, Layers, Link2, ShoppingCart, FileCheck, Send, Download } from "lucide-react";
+import { LayoutDashboard, Package, DollarSign, AlertTriangle, Settings, ArrowLeft, Plus, FileText, Upload, ShieldCheck, Edit, Trash2, History, Search, Grid, List, Calendar, Cpu, MapPin, Users, Printer, FileSpreadsheet, BarChart3, PieChart, TrendingUp, Layers, Link2, ShoppingCart, FileCheck, Send, Download, Bot, Sparkles } from "lucide-react";
 import InvoiceIntakeModal, { type InvoiceLineParsed } from "./InvoiceIntakeModal";
+import AiPriceCopilotModal from "./AiPriceCopilotModal";
 
 export type DashboardViewProps = {
   storeName?: string;
@@ -45,8 +46,24 @@ export type StoreProduct = {
   status: string;
 };
 
-// CLEAN FRESH INVENTORY START (0 sample items!)
-const INITIAL_PRODUCTS: StoreProduct[] = [];
+// Active Store Inventory (Preserving all 15 products cleanly)
+const INITIAL_PRODUCTS: StoreProduct[] = [
+  { id: "SKU-021993", name: "CUTWATER LONG ISLAND 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 12.99, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-022105", name: "CUTWATER MANGO MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-022389", name: "CUTWATER PEACH MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-022068", name: "CUTWATER WHITE RUSSIAN 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-021238", name: "CUTWATER LIME MARGARITA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-023799", name: "CUTWATER LEMON DROP MARTINI 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-020606", name: "CUTWATER VODKA MULE 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-021689", name: "CUTWATER MAI TAI 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-020477", name: "CUTWATER SPICY BLOODY MARY 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-021207", name: "CUTWATER TEQUILA PALOMA 6/4/12 CAN", brand: "Cutwater", category: "Spirits & Liquor", size: "6/4/12 Can", qty: 6, minMargin: 30, cost: 9.68, price: 14.04, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-059902", name: "MICHELOB ULTRA 2/12/12 BTL", brand: "Michelob", category: "Beer & Craft Brews", size: "12 oz Btl", qty: 4, minMargin: 30, cost: 14.98, price: 21.71, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-005428", name: "BUSCH 6/4/16 CAN", brand: "Busch", category: "Beer & Craft Brews", size: "16 oz Can", qty: 36, minMargin: 24, cost: 5.24, price: 7.60, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-611681", name: "BUSCH 24/12 CAN", brand: "Busch", category: "Beer & Craft Brews", size: "24/12 Can", qty: 2, minMargin: 22, cost: 17.70, price: 25.67, expiry: "2027-12-31", status: "Low Stock" },
+  { id: "SKU-005459", name: "NATURAL ICE 6/4/16 CAN", brand: "Natural Ice", category: "Beer & Craft Brews", size: "16 oz Can", qty: 42, minMargin: 24, cost: 4.84, price: 7.02, expiry: "2027-12-31", status: "Healthy" },
+  { id: "SKU-271687", name: "NATURAL ICE 24/12 SUITCASE", brand: "Natural Ice", category: "Beer & Craft Brews", size: "24/12 Can", qty: 2, minMargin: 22, cost: 17.70, price: 25.67, expiry: "2027-12-31", status: "Low Stock" },
+];
 
 export type StoreProfile = {
   id: string;
@@ -140,6 +157,72 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
 
   // Edit product modal state
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
+
+  // AI Copilot Price Sync Popup State
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotTargetProduct, setCopilotTargetProduct] = useState<StoreProduct | null>(null);
+  const [copilotNewPrice, setCopilotNewPrice] = useState<number>(0);
+  const [copilotMatchingGroup, setCopilotMatchingGroup] = useState<StoreProduct[]>([]);
+
+  // Triggered whenever a product price is edited
+  const triggerPriceChangeCopilot = (product: StoreProduct, newPriceVal: number) => {
+    const brandName = (product.brand || product.name.split(" ")[0]).toUpperCase();
+    const matching = products.filter(
+      (p) => (p.brand || p.name.split(" ")[0]).toUpperCase() === brandName && p.id !== product.id
+    );
+
+    // Update single item first
+    const updatedProds = products.map((p) => (p.id === product.id ? { ...p, price: newPriceVal } : p));
+    setProducts(updatedProds);
+
+    // If there are sister products in the same brand family (e.g. Cutwater 4-packs), open AI Copilot Chatbot Popup!
+    if (matching.length > 0) {
+      setCopilotTargetProduct(product);
+      setCopilotNewPrice(newPriceVal);
+      setCopilotMatchingGroup(matching);
+      setCopilotOpen(true);
+    }
+  };
+
+  const handleApplyBatchPrice = (brandName: string, priceVal: number) => {
+    const brandUpper = brandName.toUpperCase();
+    const updated = products.map((p) =>
+      (p.brand || p.name.split(" ")[0]).toUpperCase() === brandUpper ? { ...p, price: priceVal } : p
+    );
+    setProducts(updated);
+    addLog("AI Copilot Batch Price Sync", `Applied $${priceVal.toFixed(2)} price across all ${brandName} products in store inventory.`, "edit");
+    setCopilotOpen(false);
+  };
+
+  const handleApplyBatchMargin = (brandName: string, marginVal: number) => {
+    const brandUpper = brandName.toUpperCase();
+    const updated = products.map((p) => {
+      if ((p.brand || p.name.split(" ")[0]).toUpperCase() === brandUpper) {
+        const calculatedPrice = p.cost > 0 && marginVal < 100 ? Number((p.cost / (1 - marginVal / 100)).toFixed(2)) : p.price;
+        return { ...p, price: calculatedPrice, minMargin: marginVal };
+      }
+      return p;
+    });
+    setProducts(updated);
+    addLog("AI Copilot Batch Margin Sync", `Applied ${marginVal}% target gross margin across all ${brandName} products in store inventory.`, "edit");
+    setCopilotOpen(false);
+  };
+
+  const handleApplyCustomPrompt = (promptText: string) => {
+    const matchPrice = promptText.match(/\$?(\d+\.\d{2})/);
+    const matchMargin = promptText.match(/(\d+(?:\.\d+)?)%/);
+    const brandName = copilotTargetProduct ? (copilotTargetProduct.brand || copilotTargetProduct.name.split(" ")[0]) : "Cutwater";
+
+    if (matchPrice && matchPrice[1]) {
+      const pVal = parseFloat(matchPrice[1]);
+      handleApplyBatchPrice(brandName, pVal);
+    } else if (matchMargin && matchMargin[1]) {
+      const mVal = parseFloat(matchMargin[1]);
+      handleApplyBatchMargin(brandName, mVal);
+    } else {
+      handleApplyBatchPrice(brandName, copilotNewPrice);
+    }
+  };
 
   // NRS Daily Reports Sync Status & Suspect Outages
   const [nrsSyncReports] = useState([
@@ -734,62 +817,108 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                   )}
                 </div>
               ) : viewStyle === "table" ? (
-                /* TABLE / LIST VIEW */
+                /* TABLE / LIST VIEW - Premium High Density Layout */
                 <div className="bg-white rounded-2xl border border-[#171310]/10 shadow-xs overflow-hidden">
-                  <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between">
-                    <h3 className="font-bold text-sm text-ink">Active Store Inventory List</h3>
-                    <span className="text-xs text-amber-900 font-semibold">{filteredProducts.length} Items Displayed</span>
+                  <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between bg-[#FAF8F5]">
+                    <div>
+                      <h3 className="font-bold text-sm text-ink">Active Store Inventory List</h3>
+                      <p className="text-[11px] text-ink/60">Click any Retail Price cell to edit. Editing a brand price triggers AI Price Copilot sync.</p>
+                    </div>
+                    <span className="text-xs text-amber-900 font-bold bg-amber-100/70 px-3 py-1 rounded-lg">
+                      {filteredProducts.length} Items Displayed
+                    </span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-[#FAF8F5] text-ink/60 border-b border-[#171310]/10">
+                      <thead className="bg-[#FAF8F5] text-ink/70 border-b border-[#171310]/10">
                         <tr>
-                          <th className="px-6 py-3 font-semibold">SKU ID</th>
-                          <th className="px-6 py-3 font-semibold">Product Name</th>
-                          <th className="px-6 py-3 font-semibold">Category</th>
-                          <th className="px-6 py-3 font-semibold">Stock Qty</th>
-                          <th className="px-6 py-3 font-semibold">Price</th>
-                          <th className="px-6 py-3 font-semibold">Expiry Date</th>
-                          <th className="px-6 py-3 font-semibold">Status</th>
-                          <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                          <th className="px-4 py-3 font-bold">SKU / UPC</th>
+                          <th className="px-4 py-3 font-bold">Product Name</th>
+                          <th className="px-4 py-3 font-bold">Category</th>
+                          <th className="px-4 py-3 font-bold text-center">Stock Qty</th>
+                          <th className="px-4 py-3 font-bold">Unit Cost ($)</th>
+                          <th className="px-4 py-3 font-bold text-emerald-900 bg-emerald-50/60">Retail Price ($)</th>
+                          <th className="px-4 py-3 font-bold text-amber-900 bg-amber-50/60 text-center">Gross Margin</th>
+                          <th className="px-4 py-3 font-bold">Expiration Date</th>
+                          <th className="px-4 py-3 font-bold text-center">Status</th>
+                          <th className="px-4 py-3 font-bold text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#171310]/5">
-                        {filteredProducts.map((item) => (
-                          <tr key={item.id} className="hover:bg-amber-50/50 transition-colors">
-                            <td className="px-6 py-3.5 font-mono text-ink/60 font-medium">{item.id}</td>
-                            <td className="px-6 py-3.5 font-semibold text-ink">{item.name}</td>
-                            <td className="px-6 py-3.5 text-ink/70 font-medium">{item.category}</td>
-                            <td className="px-6 py-3.5 font-bold text-ink">{item.qty} units</td>
-                            <td className="px-6 py-3.5 font-bold text-amber-950">${item.price.toFixed(2)}</td>
-                            <td className="px-6 py-3.5 text-ink/70 font-mono flex items-center gap-1">
-                              <Calendar size={12} className="text-amber-800" /> {item.expiry || "2027-12-31"}
-                            </td>
-                            <td className="px-6 py-3.5">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                item.status === "Low Stock" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
-                              }`}>
-                                {item.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-3.5 text-right space-x-1.5">
-                              <button
-                                onClick={() => setEditingProduct(item)}
-                                className="p-1.5 rounded bg-black/5 hover:bg-amber-100 hover:text-amber-900 text-ink/70 transition-colors"
-                                title="Edit Product"
-                              >
-                                <Edit size={14} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteProduct(item.id, item.name)}
-                                className="p-1.5 rounded bg-black/5 hover:bg-red-100 hover:text-red-700 text-ink/70 transition-colors"
-                                title="Delete Product"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredProducts.map((item) => {
+                          const margin = item.price > 0 && item.cost > 0 ? (((item.price - item.cost) / item.price) * 100) : 30;
+
+                          return (
+                            <tr key={item.id} className="hover:bg-amber-50/40 transition-colors">
+                              <td className="px-4 py-3.5 font-mono text-ink/60 font-bold text-[11px]">{item.id}</td>
+                              <td className="px-4 py-3.5 font-bold text-ink">
+                                <div>{item.name}</div>
+                                <div className="text-[10px] font-semibold text-ink/40 uppercase">{item.brand || item.name.split(" ")[0]}</div>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className="px-2.5 py-1 rounded-md bg-black/5 text-ink/80 font-semibold text-[11px]">
+                                  {item.category}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 text-center">
+                                <span className="font-bold text-ink font-mono">{item.qty} units</span>
+                              </td>
+                              <td className="px-4 py-3.5 font-mono text-ink/70 font-semibold">
+                                ${item.cost ? item.cost.toFixed(2) : "9.68"}
+                              </td>
+                              {/* Inline Retail Price Input (Triggers AI Copilot on edit!) */}
+                              <td className="px-4 py-3.5 bg-emerald-50/20">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-bold text-emerald-900">$</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={item.price}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      triggerPriceChangeCopilot(item, val);
+                                    }}
+                                    className="w-20 px-2 py-1 bg-white border border-emerald-400 rounded-lg text-xs font-bold text-emerald-900 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+                                  />
+                                </div>
+                              </td>
+                              {/* Live Gross Margin Pill */}
+                              <td className="px-4 py-3.5 text-center">
+                                <span className={`px-2.5 py-1 rounded-full text-[11px] font-mono font-bold ${
+                                  margin >= 28 ? "bg-emerald-100 text-emerald-900 border border-emerald-300" : "bg-amber-100 text-amber-900 border border-amber-300"
+                                }`}>
+                                  {margin.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 text-ink/70 font-mono flex items-center gap-1 mt-1">
+                                <Calendar size={12} className="text-amber-800 shrink-0" /> {item.expiry || "2027-12-31"}
+                              </td>
+                              <td className="px-4 py-3.5 text-center">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                  item.status === "Low Stock" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                                }`}>
+                                  {item.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 text-right space-x-1.5">
+                                <button
+                                  onClick={() => setEditingProduct(item)}
+                                  className="p-1.5 rounded bg-black/5 hover:bg-amber-100 hover:text-amber-900 text-ink/70 transition-colors"
+                                  title="Edit Product"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProduct(item.id, item.name)}
+                                  className="p-1.5 rounded bg-black/5 hover:bg-red-100 hover:text-red-700 text-ink/70 transition-colors"
+                                  title="Delete Product"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1925,6 +2054,38 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
           </div>
         </div>
       )}
+
+      {/* Floating AI Copilot Trigger Button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => {
+            const defaultItem = products.find((p) => p.name.includes("CUTWATER")) || products[0];
+            setCopilotTargetProduct(defaultItem);
+            setCopilotNewPrice(defaultItem ? defaultItem.price : 14.04);
+            const brandName = defaultItem ? (defaultItem.brand || defaultItem.name.split(" ")[0]).toUpperCase() : "CUTWATER";
+            const matching = products.filter((p) => (p.brand || p.name.split(" ")[0]).toUpperCase() === brandName && p.id !== defaultItem.id);
+            setCopilotMatchingGroup(matching);
+            setCopilotOpen(true);
+          }}
+          className="flex items-center gap-2 px-4 py-3 rounded-full bg-amber-800 hover:bg-amber-900 text-amber-50 text-xs font-bold shadow-xl border border-amber-400/30 transition-all transform hover:scale-105 cursor-pointer group"
+        >
+          <Bot size={18} className="text-amber-300" />
+          <span>Ask Qilbo AI Copilot</span>
+          <Sparkles size={14} className="text-amber-300 group-hover:rotate-12 transition-transform" />
+        </button>
+      </div>
+
+      {/* AI Price Sync Copilot Chatbot Modal */}
+      <AiPriceCopilotModal
+        isOpen={copilotOpen}
+        onClose={() => setCopilotOpen(false)}
+        targetProduct={copilotTargetProduct}
+        newPrice={copilotNewPrice}
+        matchingGroup={copilotMatchingGroup}
+        onApplyBatchPrice={handleApplyBatchPrice}
+        onApplyBatchMargin={handleApplyBatchMargin}
+        onApplyCustomPrompt={handleApplyCustomPrompt}
+      />
 
       {/* Invoice & Receipt Intake Modal */}
       <InvoiceIntakeModal

@@ -15,12 +15,6 @@ export type LogItem = {
   type: "add" | "edit" | "delete" | "invoice" | "override" | "outage";
 };
 
-const STORES = [
-  { id: "S83954", name: "Discount Liquor #83954 (Eustis, FL)" },
-  { id: "S83955", name: "Discount Liquor #83955 (Orlando, FL)" },
-  { id: "S000", name: "Central Warehouse HQ" },
-];
-
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "inventory", label: "Inventory", icon: Package },
@@ -54,9 +48,82 @@ export type StoreProduct = {
 // CLEAN FRESH INVENTORY START (0 sample items!)
 const INITIAL_PRODUCTS: StoreProduct[] = [];
 
-export default function DashboardView({ storeName = "Discount Liquor #83954", onBackToLanding }: DashboardViewProps) {
+export type StoreProfile = {
+  id: string;
+  number: string;
+  name: string;
+  address: string;
+  phone: string;
+  taxLicense: string;
+  posEmail: string;
+  isPrimary: boolean;
+};
+
+const INITIAL_STORES: StoreProfile[] = [
+  {
+    id: "S83954",
+    number: "83954",
+    name: "Discount Liquor #83954",
+    address: "1234 S Bay St, Eustis, FL 32726",
+    phone: "(352) 555-0199",
+    taxLicense: "FL-DOR-83954-L",
+    posEmail: "no-reply@nrsplus.com",
+    isPrimary: true,
+  },
+];
+
+export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedStore, setSelectedStore] = useState(storeName);
+
+  // Persistent Store Profiles State (Saved in LocalStorage)
+  const [stores, setStores] = useState<StoreProfile[]>(() => {
+    const saved = localStorage.getItem("qilbo_store_profiles");
+    return saved ? JSON.parse(saved) : INITIAL_STORES;
+  });
+
+  const [activeStoreId, setActiveStoreId] = useState<string>(() => {
+    return localStorage.getItem("qilbo_active_store_id") || "S83954";
+  });
+
+  const activeStore = stores.find((s) => s.id === activeStoreId) || stores[0];
+
+  const [showAddStoreModal, setShowAddStoreModal] = useState(false);
+  const [newStoreName, setNewStoreName] = useState("");
+  const [newStoreNumber, setNewStoreNumber] = useState("");
+  const [newStoreAddress, setNewStoreAddress] = useState("");
+
+  const saveStoresToStorage = (updatedStores: StoreProfile[]) => {
+    setStores(updatedStores);
+    localStorage.setItem("qilbo_store_profiles", JSON.stringify(updatedStores));
+  };
+
+  const handleUpdateActiveStore = (field: keyof StoreProfile, value: any) => {
+    const updated = stores.map((s) => (s.id === activeStore.id ? { ...s, [field]: value } : s));
+    saveStoresToStorage(updated);
+  };
+
+  const handleAddNewStore = () => {
+    if (!newStoreName) return;
+    const newId = `S${Math.floor(80000 + Math.random() * 10000)}`;
+    const newProfile: StoreProfile = {
+      id: newId,
+      number: newStoreNumber || "83955",
+      name: newStoreName,
+      address: newStoreAddress || "Orlando, FL",
+      phone: "(407) 555-0199",
+      taxLicense: `FL-DOR-${newStoreNumber || "83955"}-L`,
+      posEmail: "no-reply@nrsplus.com",
+      isPrimary: false,
+    };
+    const updated = [...stores, newProfile];
+    saveStoresToStorage(updated);
+    setActiveStoreId(newId);
+    localStorage.setItem("qilbo_active_store_id", newId);
+    setShowAddStoreModal(false);
+    setNewStoreName("");
+    setNewStoreNumber("");
+    setNewStoreAddress("");
+  };
   const [products, setProducts] = useState<StoreProduct[]>(INITIAL_PRODUCTS);
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
@@ -147,7 +214,7 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
     printWindow.document.write(`
       <html>
         <head>
-          <title>Retail Shelf Label Tags - ${selectedStore}</title>
+          <title>Retail Shelf Label Tags - ${activeStore.name}</title>
           <style>
             body { font-family: system-ui, sans-serif; padding: 1rem; background: #fff; }
             .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
@@ -160,7 +227,7 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
           </style>
         </head>
         <body>
-          <h3 style="margin-bottom: 1rem;">Retail Shelf Tags (${products.length} Products) - ${selectedStore}</h3>
+          <h3 style="margin-bottom: 1rem;">Retail Shelf Tags (${products.length} Products) - ${activeStore.name}</h3>
           <div class="grid">
             ${(products.length > 0 ? products : [
               { id: "SKU-005428", name: "BUSCH 6/4/16 CAN", category: "Beer & Craft Brews", price: 5.24, size: "16 oz", expiry: "2027-08-31" },
@@ -168,7 +235,7 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
             ]).map(p => `
               <div class="tag">
                 <div>
-                  <div class="store">${selectedStore}</div>
+                  <div class="store">${activeStore.name}</div>
                   <div class="title">${p.name}</div>
                   <div style="font-size: 10px; color: #777; margin-top: 2px;">${p.category} | ${p.size || "750ml"}</div>
                 </div>
@@ -194,30 +261,40 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
     printWindow.document.write(`
       <html>
         <head>
-          <title>Distributor Invoice Audit Report - ${inv.invoiceNo}</title>
+          <title>Distributor Audit Statement - ${activeStore.name}</title>
           <style>
             body { font-family: system-ui, sans-serif; padding: 2rem; color: #171310; }
-            .header { border-b: 2px solid #171310; padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; }
-            table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+            .header { border-bottom: 2px solid #171310; padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; }
+            .badge { background: #dcfce7; color: #166534; font-weight: bold; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 12px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             th { background: #f5f5f5; }
-            .total { text-align: right; margin-top: 1.5rem; font-size: 16px; font-weight: bold; }
           </style>
         </head>
         <body>
           <div class="header">
             <div>
-              <h2>DISTRIBUTOR INVOICE AUDIT REPORT</h2>
-              <p>Store: ${selectedStore} | Vendor: ${inv.vendor}</p>
+              <h2>${activeStore.name}</h2>
+              <p>Store Address: ${activeStore.address}</p>
+              <p>DOR Tax License: ${activeStore.taxLicense}</p>
             </div>
             <div style="text-align: right;">
-              <h3>Invoice #${inv.invoiceNo}</h3>
-              <p>Audit Timestamp: ${inv.date}</p>
+              <span class="badge">AUDIT COMPLIANT</span>
+              <h3>Distributor Invoice #${inv.invoiceNo}</h3>
+              <p>Distributor: ${inv.vendor}</p>
+              <p>Date Archived: ${inv.date}</p>
             </div>
           </div>
-          <p><strong>Reconciliation Net Total:</strong> $${inv.totalNet.toFixed(2)} | <strong>Line Items:</strong> ${inv.linesCount} items</p>
-          ${inv.creditAlert > 0 ? `<p style="color: #92400e;"><strong>Credit Owed Claim:</strong> $${inv.creditAlert.toFixed(2)} (Driver Truck Breakage)</p>` : ""}
-          <p style="margin-top: 2rem; font-size: 10px; color: #666;">Certified Official Audit Record - Exported from Qilbo Smart POS Vault.</p>
+          <table>
+            <thead>
+              <tr><th>Metric</th><th>Audit Value</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Extracted Line Items</td><td>${inv.linesCount} items</td></tr>
+              <tr><td>Reconciled Net Total</td><td>$${inv.totalNet.toFixed(2)}</td></tr>
+              <tr><td>Driver Breakage Credit Owed</td><td>$${(inv.creditAlert || 0).toFixed(2)}</td></tr>
+            </tbody>
+          </table>
           <script>window.print();</script>
         </body>
       </html>
@@ -488,18 +565,30 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
           </button>
           <div className="h-5 w-px bg-ink/15 hidden sm:block" />
 
-          {/* Multi-Store Location Switcher */}
-          <div className="flex items-center gap-2 bg-[#FAF8F5] px-3 py-1.5 rounded-xl border border-ink/10">
-            <MapPin size={15} className="text-amber-800 shrink-0" />
+          {/* Store Switcher & Location Selector */}
+          <div className="flex items-center gap-2 bg-[#FAF8F5] border border-[#171310]/15 rounded-xl px-3 py-1.5 shadow-2xs">
+            <MapPin size={14} className="text-amber-800 shrink-0" />
             <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
+              value={activeStoreId}
+              onChange={(e) => {
+                setActiveStoreId(e.target.value);
+                localStorage.setItem("qilbo_active_store_id", e.target.value);
+              }}
               className="bg-transparent text-xs font-bold text-ink focus:outline-none cursor-pointer"
             >
-              {STORES.map((s) => (
-                <option key={s.id} value={s.name}>{s.name}</option>
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.address.split(",")[1]?.trim() || "FL"})
+                </option>
               ))}
             </select>
+            <button
+              onClick={() => setShowAddStoreModal(true)}
+              className="px-2 py-0.5 rounded bg-amber-800 text-amber-50 text-[10px] font-bold hover:bg-amber-900 ml-1 shadow-2xs"
+              title="Add New Store Location"
+            >
+              + Add Store
+            </button>
           </div>
         </div>
 
@@ -1403,15 +1492,127 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
           )}
 
           {/* Settings Tab Fallback */}
+          {/* Tab: Store Profile Settings */}
           {activeTab === "settings" && (
-            <div className="bg-white rounded-2xl border border-[#171310]/10 p-8 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 mx-auto flex items-center justify-center font-bold">
-                Q
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-ink">Store Profile & DOR Compliance Settings</h2>
+                  <p className="text-xs text-ink/60">Persistent settings saved automatically to your device. Supports future store expansion.</p>
+                </div>
+                <span className="px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                  <ShieldCheck size={14} /> Saved in Local Storage
+                </span>
               </div>
-              <h3 className="font-bold text-base text-ink">Store Settings & Automation Rules</h3>
-              <p className="text-xs text-ink/60 max-w-md mx-auto">
-                Configured store: <strong>{selectedStore}</strong>. Automated NRS sales polling active every morning at 06:00 AM.
-              </p>
+
+              {/* Store Details Profile Editor */}
+              <div className="bg-white p-6 rounded-2xl border border-ink/10 shadow-xs space-y-5">
+                <div className="flex items-center justify-between border-b border-ink/10 pb-4">
+                  <div>
+                    <h3 className="font-bold text-sm text-ink">{activeStore.name}</h3>
+                    <p className="text-xs text-ink/60">Edits persist automatically across sessions.</p>
+                  </div>
+                  <span className="font-mono text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded">Store #{activeStore.number}</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block text-ink/70 font-semibold mb-1">Store Name</label>
+                    <input
+                      type="text"
+                      value={activeStore.name}
+                      onChange={(e) => handleUpdateActiveStore("name", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl font-semibold text-ink"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-ink/70 font-semibold mb-1">Store Number / ID</label>
+                    <input
+                      type="text"
+                      value={activeStore.number}
+                      onChange={(e) => handleUpdateActiveStore("number", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl font-mono font-bold text-amber-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-ink/70 font-semibold mb-1">Street Address</label>
+                    <input
+                      type="text"
+                      value={activeStore.address}
+                      onChange={(e) => handleUpdateActiveStore("address", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl font-medium text-ink"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-ink/70 font-semibold mb-1">Store Phone</label>
+                    <input
+                      type="text"
+                      value={activeStore.phone}
+                      onChange={(e) => handleUpdateActiveStore("phone", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl font-medium text-ink"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-ink/70 font-semibold mb-1">Florida DOR Sales Tax License #</label>
+                    <input
+                      type="text"
+                      value={activeStore.taxLicense}
+                      onChange={(e) => handleUpdateActiveStore("taxLicense", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl font-mono text-ink"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-ink/70 font-semibold mb-1">NRS Daily Sales POS Email Sender</label>
+                    <input
+                      type="text"
+                      value={activeStore.posEmail}
+                      onChange={(e) => handleUpdateActiveStore("posEmail", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl font-mono text-amber-900"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Multi-Store Locations Manager */}
+              <div className="bg-white p-6 rounded-2xl border border-ink/10 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-sm text-ink">Multi-Store Expansion Locations</h3>
+                    <p className="text-xs text-ink/60">Switch active store or add future retail store locations.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddStoreModal(true)}
+                    className="px-4 py-2 rounded-xl bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-2xs cursor-pointer"
+                  >
+                    + Add Store Location
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {stores.map((s) => (
+                    <div
+                      key={s.id}
+                      onClick={() => {
+                        setActiveStoreId(s.id);
+                        localStorage.setItem("qilbo_active_store_id", s.id);
+                      }}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                        s.id === activeStore.id
+                          ? "border-amber-800 bg-amber-50 shadow-xs ring-1 ring-amber-800"
+                          : "border-ink/10 bg-[#FAF8F5] hover:bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-xs text-ink">{s.name}</h4>
+                        {s.id === activeStore.id && (
+                          <span className="px-2 py-0.5 rounded bg-amber-800 text-amber-50 text-[10px] font-bold">ACTIVE</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-ink/60 mt-1">{s.address}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </main>
@@ -1653,6 +1854,73 @@ export default function DashboardView({ storeName = "Discount Liquor #83954", on
                   Print CPA Audit Report
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Store Location Modal */}
+      {showAddStoreModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4 border border-ink/10 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-ink/10 pb-3">
+              <h3 className="font-bold text-base text-ink">Add New Store Location</h3>
+              <button
+                onClick={() => setShowAddStoreModal(false)}
+                className="w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-ink/70"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-ink/70 font-semibold mb-1">Store Name (e.g. Discount Liquor #83955)</label>
+                <input
+                  type="text"
+                  placeholder="Discount Liquor #83955"
+                  value={newStoreName}
+                  onChange={(e) => setNewStoreName(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl text-ink font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-ink/70 font-semibold mb-1">Store Number (e.g. 83955)</label>
+                <input
+                  type="text"
+                  placeholder="83955"
+                  value={newStoreNumber}
+                  onChange={(e) => setNewStoreNumber(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl font-mono text-ink"
+                />
+              </div>
+              <div>
+                <label className="block text-ink/70 font-semibold mb-1">City / Address</label>
+                <input
+                  type="text"
+                  placeholder="4500 Colonial Dr, Orlando, FL 32803"
+                  value={newStoreAddress}
+                  onChange={(e) => setNewStoreAddress(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#FAF8F5] border border-ink/15 rounded-xl text-ink"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-ink/10">
+              <button
+                type="button"
+                onClick={() => setShowAddStoreModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-ink/70 hover:bg-black/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddNewStore}
+                className="px-4 py-2 rounded-xl bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-2xs"
+              >
+                Save & Switch Store
+              </button>
             </div>
           </div>
         </div>

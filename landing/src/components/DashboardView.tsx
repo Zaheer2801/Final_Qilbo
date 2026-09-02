@@ -404,6 +404,96 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
     },
   ]);
 
+const WAYNE_DENSCH_LINES_ALL = [
+  { vendorItemNo: "99952", qtyCases: 0, description: "MD 2020 GRAPE 4/6/16 CN (-1 BREAKAGE ON TRUCK)", upc: "088004144722", unitCost: 31.45, lineNet: 0.00, flag: "breakage" },
+  { vendorItemNo: "02201", qtyCases: 1, description: "CUTWATER LONG ISLAND 6/4/12 CAN", upc: "816751021993", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "22112", qtyCases: 1, description: "CUTWATER MANGO MARGARITA 6/4/12 CAN", upc: "816751022105", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "22396", qtyCases: 1, description: "CUTWATER PEACH MARGARITA 6/4/12 CAN", upc: "816751022389", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "22266", qtyCases: 1, description: "CUTWATER WHITE RUSSIAN 6/4/12 CAN", upc: "816751022068", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "02122", qtyCases: 1, description: "CUTWATER LIME MARGARITA 6/4/12 CAN", upc: "816751021238", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "23799", qtyCases: 1, description: "CUTWATER LEMON DROP MARTINI 6/4/12 CAN", upc: "816751023799", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "96769", qtyCases: 2, description: "MICHELOB ULTRA 2/12/12 BTL", upc: "018200059902", unitCost: 29.95, lineNet: 59.90, flag: "normal" },
+  { vendorItemNo: "61044", qtyCases: 6, description: "BUSCH 6/4/16 CAN", upc: "018200005428", unitCost: 31.45, lineNet: 188.70, flag: "normal" },
+  { vendorItemNo: "61168", qtyCases: 2, description: "BUSCH 24/12 CAN", upc: "018200611681", unitCost: 17.70, lineNet: 35.40, flag: "normal" },
+  { vendorItemNo: "27044", qtyCases: 7, description: "NATURAL ICE 6/4/16 CAN", upc: "018200005459", unitCost: 29.05, lineNet: 203.35, flag: "normal" },
+  { vendorItemNo: "27168", qtyCases: 2, description: "NATURAL ICE 24/12 SUITCASE", upc: "018200271687", unitCost: 17.70, lineNet: 35.40, flag: "normal" },
+  { vendorItemNo: "02077", qtyCases: 1, description: "CUTWATER VODKA MULE 6/4/12 CAN", upc: "816751020606", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "02167", qtyCases: 1, description: "CUTWATER MAI TAI 6/4/12 CAN", upc: "816751021689", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "02072", qtyCases: 1, description: "CUTWATER SPICY BLOODY MARY 6/4/12 CAN", upc: "816751020477", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+  { vendorItemNo: "02119", qtyCases: 1, description: "CUTWATER TEQUILA PALOMA 6/4/12 CAN", upc: "816751021207", unitCost: 58.10, lineNet: 58.10, flag: "normal" },
+];
+
+const RAW_WAYNE_DENSCH_INVOICE_DATA_URL = "data:text/html;charset=utf-8," + encodeURIComponent(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Wayne Densch Inc Invoice #523219</title>
+  <style>
+    body { font-family: 'Courier New', Courier, monospace; padding: 20px; background: #ffffff; color: #111111; font-size: 11px; line-height: 1.4; }
+    .header { border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 12px; }
+    .title { font-size: 16px; font-weight: bold; font-family: sans-serif; }
+    .sub { font-size: 11px; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+    th { text-align: left; border-bottom: 1.5px solid #000; padding: 4px 2px; }
+    td { padding: 4px 2px; }
+    .total-box { border-top: 2px dashed #000; margin-top: 14px; padding-top: 8px; font-weight: bold; font-size: 12px; display: flex; justify-content: space-between; }
+    .note { background: #fef2f2; border: 1px solid #fca5a5; padding: 4px; font-weight: bold; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">WAYNE DENSCH, INC.</div>
+    <div class="sub">2900 W FIRST ST, SANFORD FL 32771 • (407) 323-5600</div>
+    <div style="margin-top: 8px; display: flex; justify-content: space-between; font-weight: bold;">
+      <div>ACCOUNT #: WD-83954-FL (Discount Liquor #83954)</div>
+      <div>INVOICE #: 523219 &nbsp;&nbsp; DATE: 2026-08-31</div>
+    </div>
+  </div>
+
+  <div style="font-weight: bold; margin-bottom: 4px; text-decoration: underline;">UNALTERED RAW DISTRIBUTOR DELIVERY INVOICE DOCUMENT:</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ITEM#</th>
+        <th>QTY</th>
+        <th>UPC / BARCODE</th>
+        <th>DESCRIPTION</th>
+        <th>PRICE</th>
+        <th>DISC</th>
+        <th style="text-align: right;">NET</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>99952</td><td>0 cs</td><td>088004144722</td><td>MD 2020 GRAPE 4/6/16 CN</td><td>$31.45</td><td>$0.00</td><td style="text-align: right;">$0.00</td></tr>
+      <tr><td colspan="7" class="note">⚠️ EXCEPTION NOTE: -1 BREAKAGE ON TRUCK (CREDIT OWED $31.45)</td></tr>
+      <tr><td>02201</td><td>1 cs</td><td>816751021993</td><td>CUTWATER LONG ISLAND 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>22112</td><td>1 cs</td><td>816751022105</td><td>CUTWATER MANGO MARGARITA 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>22396</td><td>1 cs</td><td>816751022389</td><td>CUTWATER PEACH MARGARITA 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>22266</td><td>1 cs</td><td>816751022068</td><td>CUTWATER WHITE RUSSIAN 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>02122</td><td>1 cs</td><td>816751021238</td><td>CUTWATER LIME MARGARITA 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>23799</td><td>1 cs</td><td>816751023799</td><td>CUTWATER LEMON DROP MARTINI 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>96769</td><td>2 cs</td><td>018200059902</td><td>MICHELOB ULTRA 2/12/12 BTL</td><td>$29.95</td><td>$0.00</td><td style="text-align: right;">$59.90</td></tr>
+      <tr><td>61044</td><td>6 cs</td><td>018200005428</td><td>BUSCH 6/4/16 CAN</td><td>$31.45</td><td>$0.00</td><td style="text-align: right;">$188.70</td></tr>
+      <tr><td>61168</td><td>2 cs</td><td>018200611681</td><td>BUSCH 24/12 CAN</td><td>$19.65</td><td>$1.95</td><td style="text-align: right;">$35.40</td></tr>
+      <tr><td>27044</td><td>7 cs</td><td>018200005459</td><td>NATURAL ICE 6/4/16 CAN</td><td>$29.05</td><td>$0.00</td><td style="text-align: right;">$203.35</td></tr>
+      <tr><td>27168</td><td>2 cs</td><td>018200271687</td><td>NATURAL ICE 24/12 SUITCASE</td><td>$19.65</td><td>$1.95</td><td style="text-align: right;">$35.40</td></tr>
+      <tr><td>02077</td><td>1 cs</td><td>816751020606</td><td>CUTWATER VODKA MULE 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>02167</td><td>1 cs</td><td>816751021689</td><td>CUTWATER MAI TAI 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>02072</td><td>1 cs</td><td>816751020477</td><td>CUTWATER SPICY BLOODY MARY 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+      <tr><td>02119</td><td>1 cs</td><td>816751021207</td><td>CUTWATER TEQUILA PALOMA 6/4/12 CAN</td><td>$62.55</td><td>$4.45</td><td style="text-align: right;">$58.10</td></tr>
+    </tbody>
+  </table>
+
+  <div class="total-box">
+    <div>TOTAL CASES DELIVERED: 29 CS</div>
+    <div>RECONCILIATION NET TOTAL: $1103.75</div>
+  </div>
+</body>
+</html>
+`);
+
   // Uploaded Invoices Vault History
   const [invoicesHistory, setInvoicesHistory] = useState<any[]>([
     {
@@ -412,9 +502,13 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
       invoiceNo: "523219",
       date: "2026-08-31",
       totalNet: 1103.75,
-      linesCount: 15,
+      linesCount: 16,
       creditAlert: 31.45,
       status: "Reconciled & Archived",
+      originalFileName: "Wayne_Densch_Invoice_523219.pdf",
+      fileType: "application/pdf",
+      originalFileUrl: RAW_WAYNE_DENSCH_INVOICE_DATA_URL,
+      lines: WAYNE_DENSCH_LINES_ALL,
     },
   ]);
 

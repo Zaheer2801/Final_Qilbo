@@ -183,33 +183,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
   const [copilotMatchingGroup, setCopilotMatchingGroup] = useState<StoreProduct[]>([]);
   const [copilotPackCategory, setCopilotPackCategory] = useState<string>("4-pack");
 
-  // Triggered whenever a product price is edited
-  const triggerPriceChangeCopilot = (product: StoreProduct, newPriceVal: number) => {
-    const brandName = (product.brand || product.name.split(" ")[0]).toUpperCase();
-    const packCat = getPackSizeCategory(product.name);
 
-    // Update single item price in local state IMMEDIATELY (never block user override)
-    const updatedProds = products.map((p) => (p.id === product.id ? { ...p, price: newPriceVal } : p));
-    setProducts(updatedProds);
-    addLog("Single Price Override", `Overrode price for ${product.name} to $${newPriceVal.toFixed(2)}`, "override");
-
-    // Strictly match products that share BOTH the Brand AND the Pack Category (e.g. 4-packs ONLY match 4-packs!)
-    const matching = products.filter((p) => {
-      if (p.id === product.id) return false;
-      const pBrand = (p.brand || p.name.split(" ")[0]).toUpperCase();
-      const pPack = getPackSizeCategory(p.name);
-      return pBrand === brandName && pPack === packCat;
-    });
-
-    // If there are sister products in the EXACT same brand family AND pack size (e.g. Cutwater 4-packs), open AI Copilot Chatbot Popup!
-    if (matching.length > 0) {
-      setCopilotTargetProduct(product);
-      setCopilotNewPrice(newPriceVal);
-      setCopilotPackCategory(packCat);
-      setCopilotMatchingGroup(matching);
-      setCopilotOpen(true);
-    }
-  };
 
   const handleApplyBatchPrice = (brandName: string, packCat: string, priceVal: number) => {
     const brandUpper = brandName.toUpperCase();
@@ -857,7 +831,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                   <div className="px-6 py-4 border-b border-[#171310]/10 flex items-center justify-between bg-[#FAF8F5]">
                     <div>
                       <h3 className="font-bold text-sm text-ink">Active Store Inventory List</h3>
-                      <p className="text-[11px] text-ink/60">Click any Retail Price cell to edit. Editing a brand price triggers AI Price Copilot sync.</p>
+                      <p className="text-[11px] text-ink/60">Click any Retail Price cell to edit prices directly in real time.</p>
                     </div>
                     <span className="text-xs text-amber-900 font-bold bg-amber-100/70 px-3 py-1 rounded-lg">
                       {filteredProducts.length} Items Displayed
@@ -901,7 +875,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                               <td className="px-4 py-3.5 font-mono text-ink/70 font-semibold">
                                 ${item.cost ? item.cost.toFixed(2) : "9.68"}
                               </td>
-                              {/* Inline Retail Price Input (Triggers AI Copilot on edit!) */}
+                              {/* Direct Distraction-Free Inline Retail Price Input */}
                               <td className="px-4 py-3.5 bg-emerald-50/20">
                                 <div className="flex items-center gap-1">
                                   <span className="text-xs font-bold text-emerald-900">$</span>
@@ -911,7 +885,7 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                                     value={item.price}
                                     onChange={(e) => {
                                       const val = parseFloat(e.target.value) || 0;
-                                      triggerPriceChangeCopilot(item, val);
+                                      setProducts((prev) => prev.map((p) => (p.id === item.id ? { ...p, price: val } : p)));
                                     }}
                                     className="w-20 px-2 py-1 bg-white border border-emerald-400 rounded-lg text-xs font-bold text-emerald-900 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
                                   />

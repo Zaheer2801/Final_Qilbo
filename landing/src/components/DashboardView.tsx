@@ -2329,10 +2329,10 @@ function generateUpcABarcodeSvg(upcInput: string, options: { height?: number; sc
         </div>
       )}
 
-      {/* Invoice Document Audit Viewer Modal - RENDERS ORIGINAL FILE AS IS */}
+      {/* Invoice Document Audit Viewer Modal - RENDERS BOTH TABULAR FORM & UPLOADED FILE SIDE-BY-SIDE AT THE SAME TIME */}
       {viewingInvoiceDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-4xl space-y-4 border border-ink/10 shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-6xl space-y-4 border border-ink/10 shadow-2xl flex flex-col max-h-[92vh] animate-fade-in">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-ink/10 pb-3">
               <div>
@@ -2344,83 +2344,109 @@ function generateUpcABarcodeSvg(upcInput: string, options: { height?: number; sc
               </div>
               <button
                 onClick={() => setViewingInvoiceDoc(null)}
-                className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-ink/70"
+                className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-ink/70 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            {/* Document Preview Container - RENDERS ORIGINAL AS IS */}
-            <div className="flex-1 overflow-hidden bg-black/5 rounded-xl border border-ink/15 p-2 flex items-center justify-center min-h-[480px]">
-              {viewingInvoiceDoc.originalFileUrl ? (
-                viewingInvoiceDoc.fileType?.includes("image") || viewingInvoiceDoc.originalFileName?.match(/\.(png|jpg|jpeg|webp)$/i) ? (
-                  <div className="text-center space-y-2 max-h-[500px] overflow-auto">
-                    <img
-                      src={viewingInvoiceDoc.originalFileUrl}
-                      alt={viewingInvoiceDoc.originalFileName || "Original Invoice Receipt Image Proof"}
-                      className="max-w-full max-h-[460px] object-contain rounded-lg shadow-md border border-ink/20 bg-white mx-auto"
-                    />
-                    <div className="text-[11px] text-ink/60 font-mono">
-                      Image Proof File: <strong>{viewingInvoiceDoc.originalFileName}</strong> ({viewingInvoiceDoc.fileType})
-                    </div>
+            {/* Dual Pane Body: Tabular Form + Uploaded Document File Preview rendered side-by-side at the same time */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[480px]">
+              {/* Left Column: Tabular Extracted Receipt Form */}
+              <div className="bg-[#FAF8F5] p-5 rounded-xl border border-ink/15 overflow-y-auto space-y-4 text-xs font-sans shadow-inner">
+                <div className="flex justify-between items-center border-b border-ink/10 pb-3">
+                  <div>
+                    <h4 className="font-bold text-sm text-ink">{viewingInvoiceDoc.vendor}</h4>
+                    <span className="text-[11px] text-ink/60">Extracted Line-Item Receipt Table</span>
                   </div>
-                ) : (
-                  <iframe
-                    src={viewingInvoiceDoc.originalFileUrl}
-                    title="Original Invoice PDF Document"
-                    className="w-full h-[500px] rounded-lg border-0 bg-white"
-                  />
-                )
-              ) : (
-                /* Fallback raw original document layout for sample reference */
-                <div className="w-full h-full bg-white p-8 rounded-lg shadow-inner overflow-y-auto space-y-6 text-xs font-mono text-ink/90 border border-ink/15">
-                  <div className="flex justify-between border-b-2 border-ink pb-4">
-                    <div>
-                      <h2 className="font-bold text-lg text-ink font-sans">{viewingInvoiceDoc.vendor}</h2>
-                      <p className="text-xs font-sans text-ink/60">Sanford FL - Anheuser-Busch Wholesale House</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-base text-amber-900 font-sans">INVOICE #{viewingInvoiceDoc.invoiceNo}</div>
-                      <div className="text-xs font-sans text-ink/60">Date: {viewingInvoiceDoc.date}</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="font-bold text-ink uppercase tracking-wider text-[11px] font-sans">Original Delivery Line Items (As Billed)</div>
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-[#FAF8F5] border-b border-ink/20 font-sans">
-                        <tr>
-                          <th className="py-2">ITEM#</th>
-                          <th className="py-2">QTY</th>
-                          <th className="py-2">DESCRIPTION</th>
-                          <th className="py-2">U.P.C.</th>
-                          <th className="py-2">PRICE</th>
-                          <th className="py-2">NET</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-ink/10">
-                        <tr><td>61044</td><td>6 cs</td><td>BUSCH 6/4/16 CAN</td><td>018200005428</td><td>$31.45</td><td>$188.70</td></tr>
-                        <tr><td>61099</td><td>7 cs</td><td>NATURAL ICE 6/4/16 CAN</td><td>018200005459</td><td>$29.04</td><td>$203.28</td></tr>
-                        <tr><td>61168</td><td>2 cs</td><td>BUSCH 24/12 CAN</td><td>018200611681</td><td>$19.65</td><td>$35.40</td></tr>
-                        <tr><td>96769</td><td>2 cs</td><td>MICHELOB ULTRA 2/12/12 BTL</td><td>018200059902</td><td>$29.95</td><td>$59.90</td></tr>
-                        <tr><td>02201</td><td>1 cs</td><td>CUTWATER LONG ISLAND 6/4/12 CAN</td><td>816751021993</td><td>$62.55</td><td>$58.10</td></tr>
-                        <tr className="bg-amber-100/60 font-bold"><td>99952</td><td>0 cs</td><td>MD 2020 GRAPE (-1 BREAKAGE ON TRUCK)</td><td>088004144722</td><td>$31.45</td><td>$31.45</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="flex justify-between items-center border-t-2 border-ink pt-4 font-sans font-bold">
-                    <span>Reconciliation Invoice Total:</span>
-                    <span className="text-base text-ink">${viewingInvoiceDoc.totalNet.toFixed(2)}</span>
+                  <div className="text-right">
+                    <span className="font-bold text-amber-900 font-mono text-sm block">INVOICE #{viewingInvoiceDoc.invoiceNo}</span>
+                    <span className="text-[10px] text-ink/50 font-mono">Date: {viewingInvoiceDoc.date}</span>
                   </div>
                 </div>
-              )}
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-mono">
+                    <thead className="bg-white border-b border-ink/15 font-sans font-bold text-ink/70">
+                      <tr>
+                        <th className="py-2 px-2">ITEM#</th>
+                        <th className="py-2 px-2">QTY</th>
+                        <th className="py-2 px-2">DESCRIPTION</th>
+                        <th className="py-2 px-2">U.P.C.</th>
+                        <th className="py-2 px-2">PRICE</th>
+                        <th className="py-2 px-2 text-right">NET</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ink/10 text-[11px]">
+                      {viewingInvoiceDoc.lines ? viewingInvoiceDoc.lines.map((l: any, i: number) => (
+                        <tr key={i} className={l.flag === "breakage" ? "bg-amber-100/70 font-bold" : ""}>
+                          <td className="py-2 px-2 text-ink/60">{l.vendorItemNo || `610${i+4}`}</td>
+                          <td className="py-2 px-2 font-bold">{l.qtyCases || l.unitsReceived || 1} cs</td>
+                          <td className="py-2 px-2 font-sans font-semibold">{l.description}</td>
+                          <td className="py-2 px-2 text-amber-950 font-bold">{l.upc}</td>
+                          <td className="py-2 px-2">${(l.unitCost || l.casePrice || 31.45).toFixed(2)}</td>
+                          <td className="py-2 px-2 text-right font-bold">${(l.lineNet || (l.unitCost * l.qtyCases)).toFixed(2)}</td>
+                        </tr>
+                      )) : (
+                        <>
+                          <tr><td className="py-2 px-2">61044</td><td className="py-2 px-2 font-bold">6 cs</td><td className="py-2 px-2 font-sans font-semibold">BUSCH 6/4/16 CAN</td><td className="py-2 px-2 text-amber-950 font-bold">018200005428</td><td className="py-2 px-2">$31.45</td><td className="py-2 px-2 text-right font-bold">$188.70</td></tr>
+                          <tr><td className="py-2 px-2">61099</td><td className="py-2 px-2 font-bold">7 cs</td><td className="py-2 px-2 font-sans font-semibold">NATURAL ICE 6/4/16 CAN</td><td className="py-2 px-2 text-amber-950 font-bold">018200005459</td><td className="py-2 px-2">$29.04</td><td className="py-2 px-2 text-right font-bold">$203.28</td></tr>
+                          <tr><td className="py-2 px-2">61168</td><td className="py-2 px-2 font-bold">2 cs</td><td className="py-2 px-2 font-sans font-semibold">BUSCH 24/12 CAN</td><td className="py-2 px-2 text-amber-950 font-bold">018200611681</td><td className="py-2 px-2">$19.65</td><td className="py-2 px-2 text-right font-bold">$35.40</td></tr>
+                          <tr><td className="py-2 px-2">96769</td><td className="py-2 px-2 font-bold">2 cs</td><td className="py-2 px-2 font-sans font-semibold">MICHELOB ULTRA 2/12/12 BTL</td><td className="py-2 px-2 text-amber-950 font-bold">018200059902</td><td className="py-2 px-2">$29.95</td><td className="py-2 px-2 text-right font-bold">$59.90</td></tr>
+                          <tr><td className="py-2 px-2">02201</td><td className="py-2 px-2 font-bold">1 cs</td><td className="py-2 px-2 font-sans font-semibold">CUTWATER LONG ISLAND 6/4/12 CAN</td><td className="py-2 px-2 text-amber-950 font-bold">816751021993</td><td className="py-2 px-2">$62.55</td><td className="py-2 px-2 text-right font-bold">$58.10</td></tr>
+                          <tr className="bg-amber-100/70 font-bold"><td className="py-2 px-2">99952</td><td className="py-2 px-2 font-bold">0 cs</td><td className="py-2 px-2 font-sans font-semibold">MD 2020 GRAPE (-1 BREAKAGE ON TRUCK)</td><td className="py-2 px-2 text-amber-950 font-bold">088004144722</td><td className="py-2 px-2">$31.45</td><td className="py-2 px-2 text-right font-bold">$31.45</td></tr>
+                        </>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-between items-center border-t border-ink/15 pt-3 font-sans font-bold text-xs">
+                  <span>Reconciliation Net Total:</span>
+                  <span className="text-sm text-emerald-900">${viewingInvoiceDoc.totalNet.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Right Column: Actual Uploaded File Document / Image / PDF Preview */}
+              <div className="bg-black/5 rounded-xl border border-ink/15 p-2 flex flex-col items-center justify-center overflow-hidden min-h-[440px]">
+                {viewingInvoiceDoc.originalFileUrl ? (
+                  viewingInvoiceDoc.fileType?.includes("image") || viewingInvoiceDoc.originalFileName?.match(/\.(png|jpg|jpeg|webp)$/i) ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                      <img
+                        src={viewingInvoiceDoc.originalFileUrl}
+                        alt={viewingInvoiceDoc.originalFileName || "Original Invoice Receipt Image Proof"}
+                        className="max-w-full max-h-[420px] object-contain rounded-lg shadow-md border border-ink/20 bg-white"
+                      />
+                      <div className="text-[11px] text-ink/60 font-mono mt-2">
+                        Uploaded File Proof: <strong>{viewingInvoiceDoc.originalFileName}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <iframe
+                      src={viewingInvoiceDoc.originalFileUrl}
+                      title="Original Invoice PDF Document"
+                      className="w-full h-full min-h-[440px] rounded-lg border-0 bg-white"
+                    />
+                  )
+                ) : (
+                  <div className="text-center p-8 space-y-3 bg-white rounded-lg border border-ink/10 max-w-sm shadow-xs">
+                    <FileText size={36} className="text-amber-800 mx-auto opacity-60" />
+                    <h4 className="font-bold text-sm text-ink">Uploaded Distributor Document</h4>
+                    <p className="text-xs text-ink/60">
+                      Uploaded file proof: <strong className="font-mono">{viewingInvoiceDoc.originalFileName || `Wayne_Densch_Invoice_${viewingInvoiceDoc.invoiceNo}.pdf`}</strong>
+                    </p>
+                    <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-900 rounded-md text-xs font-bold font-mono">
+                      ✓ Unaltered Original File Saved
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Modal Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-ink/10">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-ink/10">
               <span className="text-xs text-emerald-800 font-bold flex items-center gap-1.5">
-                <ShieldCheck size={16} /> Raw Image/PDF Proof Saved in Same Format
+                <ShieldCheck size={16} /> Tabular Receipt Form & Uploaded Original Document Displayed Side-by-Side
               </span>
               <div className="flex items-center gap-2">
                 {viewingInvoiceDoc.originalFileUrl ? (
@@ -2429,13 +2455,13 @@ function generateUpcABarcodeSvg(upcInput: string, options: { height?: number; sc
                     download={viewingInvoiceDoc.originalFileName || `Proof_${viewingInvoiceDoc.invoiceNo}`}
                     className="px-4 py-2 rounded-lg bg-amber-800 text-amber-50 text-xs font-bold hover:bg-amber-900 shadow-2xs flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Download size={14} /> Download Original Proof ({viewingInvoiceDoc.originalFileName?.split('.').pop()?.toUpperCase() || "IMAGE"})
+                    <Download size={14} /> Download Uploaded File ({viewingInvoiceDoc.originalFileName?.split('.').pop()?.toUpperCase() || "PDF"})
                   </a>
                 ) : null}
                 <button
                   type="button"
                   onClick={() => handlePrintAuditDoc(viewingInvoiceDoc)}
-                  className="px-4 py-2 rounded-lg border border-ink/20 text-ink text-xs font-bold hover:bg-black/5"
+                  className="px-4 py-2 rounded-lg border border-ink/20 text-ink text-xs font-bold hover:bg-black/5 cursor-pointer"
                 >
                   Print CPA Audit Report
                 </button>

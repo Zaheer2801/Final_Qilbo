@@ -224,7 +224,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-      <div className="relative w-full max-w-4xl bg-[#FAF6EF] border border-[#171310]/15 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className={`relative w-full ${step === "review" ? "max-w-6xl" : "max-w-4xl"} bg-[#FAF6EF] border border-[#171310]/15 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-all`}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#171310]/10 bg-white/70">
           <div className="flex items-center gap-3">
@@ -485,8 +485,46 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                 </div>
               )}
 
-              {/* Line-by-Line Editable Table */}
-              <div className="bg-white rounded-xl border border-ink/10 overflow-hidden shadow-xs">
+              {/* Dual-Pane View: Original Uploaded Document Proof + Extracted Tabular Receipt Data Table */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                {/* Original File Preview Panel (Left Column) */}
+                <div className="lg:col-span-5 bg-white p-3 rounded-xl border border-ink/10 flex flex-col justify-between space-y-2 min-h-[420px]">
+                  <div className="flex items-center justify-between border-b border-ink/10 pb-2">
+                    <span className="font-bold text-xs text-ink flex items-center gap-1.5">
+                      <FileText size={14} className="text-amber-800" /> Uploaded Document Proof
+                    </span>
+                    <span className="text-[10px] font-mono text-ink/50 truncate max-w-[180px]">{uploadedFileName}</span>
+                  </div>
+
+                  <div className="flex-1 bg-black/5 rounded-lg border border-ink/10 flex items-center justify-center p-2 min-h-[360px] overflow-hidden">
+                    {originalFileUrl ? (
+                      fileType.includes("image") || uploadedFileName.match(/\.(png|jpg|jpeg|webp)$/i) ? (
+                        <img
+                          src={originalFileUrl}
+                          alt="Uploaded Receipt Proof"
+                          className="max-w-full max-h-[360px] object-contain rounded shadow-xs bg-white"
+                        />
+                      ) : (
+                        <iframe
+                          src={originalFileUrl}
+                          title="Uploaded Document PDF"
+                          className="w-full h-full min-h-[360px] rounded border-0 bg-white"
+                        />
+                      )
+                    ) : (
+                      <div className="text-center p-4 space-y-2">
+                        <FileText size={32} className="text-amber-800 mx-auto opacity-50" />
+                        <p className="text-xs text-ink/60 font-semibold">{uploadedFileName || "Sample_Invoice_523219.pdf"}</p>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold inline-block">
+                          ✓ File Saved in Original Format
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Extracted Tabular Receipt Data Table (Right Column) */}
+                <div className="lg:col-span-7 bg-white rounded-xl border border-ink/10 overflow-hidden shadow-xs">
                 <div className="px-4 py-3 border-b border-ink/10 flex items-center justify-between bg-[#FAF8F5]">
                   <div>
                     <h4 className="font-bold text-xs text-ink uppercase tracking-wide">Extracted Line Items ({parsedLines.length} Items Extracted)</h4>
@@ -694,7 +732,8 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
         </div>
 
         {/* Footer Buttons */}

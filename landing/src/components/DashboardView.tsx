@@ -418,43 +418,58 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
     },
   ]);
 
-  const handlePrintShelfTags = () => {
+  const handlePrintSingleProductBarcode = (product: StoreProduct) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(`
       <html>
         <head>
-          <title>Retail Shelf Label Tags - ${activeStore.name}</title>
+          <title>Customer Shelf Tag - ${product.name}</title>
           <style>
-            body { font-family: system-ui, sans-serif; padding: 1rem; background: #fff; }
-            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-            .tag { border: 2px solid #171310; border-radius: 8px; padding: 12px; height: 160px; display: flex; flex-col; justify-content: space-between; page-break-inside: avoid; }
-            .store { font-size: 9px; font-weight: bold; text-transform: uppercase; color: #92400e; letter-spacing: 0.5px; }
-            .title { font-size: 14px; font-weight: bold; margin-top: 4px; color: #171310; line-height: 1.2; }
-            .price { font-size: 26px; font-weight: 900; color: #171310; text-align: right; }
-            .meta { font-size: 10px; color: #555; display: flex; justify-content: space-between; border-t: 1px solid #eee; pt: 4px; }
-            .barcode { font-family: monospace; font-size: 14px; font-weight: bold; text-align: center; letter-spacing: 3px; background: #f5f5f5; padding: 4px; border-radius: 4px; margin-top: 6px; }
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; background: #fff; color: #000; }
+            .tag-container { max-width: 380px; margin: 0 auto; border: 3px solid #000; border-radius: 12px; padding: 20px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: space-between; height: 160px; }
+            .name { font-size: 18px; font-weight: 800; text-transform: uppercase; color: #000; line-height: 1.25; letter-spacing: -0.3px; }
+            .price { font-size: 40px; font-weight: 900; color: #000; text-align: right; font-family: system-ui, sans-serif; }
+            .barcode-box { font-family: monospace; font-size: 18px; font-weight: 900; text-align: center; letter-spacing: 4px; background: #f8f8f8; padding: 8px 16px; border-radius: 8px; border: 2px solid #000; margin-top: 8px; }
           </style>
         </head>
         <body>
-          <h3 style="margin-bottom: 1rem;">Retail Shelf Tags (${products.length} Products) - ${activeStore.name}</h3>
+          <div class="tag-container">
+            <div class="name">${product.name}</div>
+            <div class="price">$${product.price.toFixed(2)}</div>
+            <div class="barcode-box">║▌║ ${product.upc || "816751021993"} ║▌║</div>
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handlePrintShelfTags = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const listToPrint = products.length > 0 ? products : INITIAL_PRODUCTS;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Customer Shelf Tags</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 1.5rem; background: #fff; color: #000; }
+            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            .tag { border: 2.5px solid #000; border-radius: 10px; padding: 14px; height: 135px; display: flex; flex-direction: column; justify-content: space-between; page-break-inside: avoid; background: #fff; }
+            .name { font-size: 15px; font-weight: 800; text-transform: uppercase; color: #000; line-height: 1.2; letter-spacing: -0.2px; }
+            .price { font-size: 30px; font-weight: 900; color: #000; text-align: right; font-family: system-ui, sans-serif; }
+            .barcode { font-family: monospace; font-size: 15px; font-weight: 900; text-align: center; letter-spacing: 4px; background: #f8f8f8; padding: 6px 10px; border-radius: 6px; border: 1.5px solid #000; margin-top: 4px; }
+          </style>
+        </head>
+        <body>
           <div class="grid">
-            ${(products.length > 0 ? products : [
-              { id: "SKU-005428", name: "BUSCH 6/4/16 CAN", category: "Beer & Craft Brews", price: 5.24, size: "16 oz", expiry: "2027-08-31" },
-              { id: "SKU-021993", name: "CUTWATER LONG ISLAND 4PK", category: "Spirits & Liquor", price: 9.68, size: "12 oz", expiry: "2028-06-30" },
-            ]).map(p => `
+            ${listToPrint.map(p => `
               <div class="tag">
-                <div>
-                  <div class="store">${activeStore.name}</div>
-                  <div class="title">${p.name}</div>
-                  <div style="font-size: 10px; color: #777; margin-top: 2px;">${p.category} | ${p.size || "750ml"}</div>
-                </div>
+                <div class="name">${p.name}</div>
                 <div class="price">$${p.price.toFixed(2)}</div>
-                <div class="meta">
-                  <span>SKU: ${p.id}</span>
-                  <span>Margin: 28% Floor</span>
-                </div>
-                <div class="barcode">║▌║ ${p.id} ║▌║</div>
+                <div class="barcode">║▌║ ${p.upc || "816751021993"} ║▌║</div>
               </div>
             `).join('')}
           </div>
@@ -984,9 +999,15 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
                             <tr key={item.id} className="hover:bg-amber-50/40 transition-colors">
                               <td className="px-4 py-3.5 font-mono text-ink/60 font-bold text-[11px]">{item.id}</td>
                               <td className="px-4 py-3.5 bg-amber-50/20">
-                                <div className="font-mono text-amber-950 font-bold bg-amber-100/80 border border-amber-300/80 px-2 py-0.5 rounded text-[11px] inline-block tracking-wider shadow-2xs">
-                                  {item.upc || "000000000000"}
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handlePrintSingleProductBarcode(item)}
+                                  className="font-mono text-amber-950 font-bold bg-amber-100 hover:bg-amber-200 border border-amber-300 px-2 py-0.5 rounded text-[11px] inline-flex items-center gap-1 tracking-wider shadow-2xs cursor-pointer transition-all hover:scale-105"
+                                  title="Click to view & print clean customer barcode shelf tag"
+                                >
+                                  <span>{item.upc || "000000000000"}</span>
+                                  <span className="text-[9px] text-amber-800 font-sans font-semibold">🔍</span>
+                                </button>
                               </td>
                               <td className="px-4 py-3.5 font-bold text-ink">
                                 <div>{item.name}</div>

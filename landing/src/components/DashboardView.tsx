@@ -103,16 +103,6 @@ const INITIAL_PRODUCTS: StoreProduct[] = [
   { id: "SKU-611681", upc: "018200611681", name: "BUSCH 24/12 CAN", brand: "Busch", category: "Beer & Craft Brews", size: "24/12 Can", qty: 2, minMargin: 22, cost: 17.70, price: 25.67, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Low Stock" },
   { id: "SKU-005459", upc: "018200005459", name: "NATURAL ICE 6/4/16 CAN", brand: "Natural Ice", category: "Beer & Craft Brews", size: "16 oz Can", qty: 42, minMargin: 24, cost: 4.84, price: 7.02, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Healthy" },
   { id: "SKU-271687", upc: "018200271687", name: "NATURAL ICE 24/12 SUITCASE", brand: "Natural Ice", category: "Beer & Craft Brews", size: "24/12 Can", qty: 2, minMargin: 22, cost: 17.70, price: 25.67, vendor: "Wayne Densch, Inc.", expiry: "2027-12-31", status: "Low Stock" },
-
-  // BBG / Breakthru Beverage Group Products
-  { id: "SKU-510010", upc: "088004051001", name: "HENNESSY VS COGNAC 750ML", brand: "Hennessy", category: "Spirits & Liquor", size: "750ml Btl", qty: 3, minMargin: 30, cost: 34.50, price: 49.99, vendor: "BBG / Breakthru Beverage Group", expiry: "2028-12-31", status: "Low Stock" },
-  { id: "SKU-510027", upc: "088004051002", name: "CROWN ROYAL CANADIAN 750ML", brand: "Crown Royal", category: "Spirits & Liquor", size: "750ml Btl", qty: 8, minMargin: 30, cost: 22.10, price: 32.99, vendor: "BBG / Breakthru Beverage Group", expiry: "2028-12-31", status: "Healthy" },
-  { id: "SKU-510034", upc: "088004051003", name: "PATRON SILVER TEQUILA 750ML", brand: "Patron", category: "Spirits & Liquor", size: "750ml Btl", qty: 2, minMargin: 30, cost: 38.00, price: 54.99, vendor: "BBG / Breakthru Beverage Group", expiry: "2028-12-31", status: "Low Stock" },
-
-  // Southern Glazer's Wine & Spirits Products
-  { id: "SKU-520015", upc: "088004052001", name: "TITO'S HANDMADE VODKA 1.75L", brand: "Tito's", category: "Spirits & Liquor", size: "1.75L Btl", qty: 3, minMargin: 30, cost: 24.00, price: 34.99, vendor: "Southern Glazer's Wine & Spirits", expiry: "2028-12-31", status: "Low Stock" },
-  { id: "SKU-144722", upc: "088004144722", name: "FIREBALL CINNAMON WHISKY 750ML", brand: "Fireball", category: "Spirits & Liquor", size: "750ml Btl", qty: 14, minMargin: 35, cost: 11.00, price: 16.99, vendor: "Southern Glazer's Wine & Spirits", expiry: "2028-12-31", status: "Healthy" },
-  { id: "SKU-520039", upc: "088004052003", name: "JÄGERMEISTER HERBAL LIQUEUR 750ML", brand: "Jägermeister", category: "Spirits & Liquor", size: "750ml Btl", qty: 1, minMargin: 30, cost: 18.50, price: 26.99, vendor: "Southern Glazer's Wine & Spirits", expiry: "2028-12-31", status: "Low Stock" },
 ];
 
 export type StoreProfile = {
@@ -191,7 +181,26 @@ export default function DashboardView({ onBackToLanding }: DashboardViewProps) {
     setNewStoreNumber("");
     setNewStoreAddress("");
   };
-  const [products, setProducts] = useState<StoreProduct[]>(INITIAL_PRODUCTS);
+  // Persistent Inventory Products State (Saved in LocalStorage so user edits are NEVER lost!)
+  const [products, setProductsState] = useState<StoreProduct[]>(() => {
+    const saved = localStorage.getItem("qilbo_store_inventory_products");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to load saved products", e);
+      }
+    }
+    return INITIAL_PRODUCTS;
+  });
+
+  const setProducts = (updated: StoreProduct[] | ((prev: StoreProduct[]) => StoreProduct[])) => {
+    setProductsState((prev) => {
+      const next = typeof updated === "function" ? updated(prev) : updated;
+      localStorage.setItem("qilbo_store_inventory_products", JSON.stringify(next));
+      return next;
+    });
+  };
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
   const [newProductQty, setNewProductQty] = useState("");

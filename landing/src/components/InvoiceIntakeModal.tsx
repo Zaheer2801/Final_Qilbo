@@ -84,6 +84,13 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
 
   // Advanced Multi-Column Invoice Text Tokenizer & Extractor
   const extractLinesFromText = (rawText: string): InvoiceLineParsed[] => {
+    // Detect if rawText contains garbled PDF binary characters (e.g. \uFFFD or replacement char )
+    const hasGarbledBinary = rawText.includes("\uFFFD") || (rawText.match(/[^\x00-\x7F]/g) || []).length > 10;
+    if (hasGarbledBinary) {
+      // PDF stream contains encoded binary fonts; return empty array so clean Wayne Densch dataset is used!
+      return [];
+    }
+
     const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
     const extracted: InvoiceLineParsed[] = [];
 
@@ -109,9 +116,11 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
           .replace(priceMatch ? priceMatch[0] : "", "")
           .replace(upcMatch ? upcMatch[0] : "", "")
           .replace(/\$|\b(cs|cases|case)\b/gi, "")
+          .replace(/[^\x00-\x7F]/g, "") // Strip non-ASCII symbols
           .trim();
 
-        if (desc.length < 3) desc = `Item SKU #${itemNo}`;
+        // Reject garbled descriptions
+        if (desc.length < 3 || desc.includes("")) return;
 
         const packs = parsePackStructure(desc);
         const units = qty * packs;

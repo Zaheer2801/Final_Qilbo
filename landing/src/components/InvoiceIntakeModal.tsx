@@ -3,6 +3,7 @@ import { X, Upload, AlertTriangle, FileText, CheckCircle2, RefreshCw, Image as I
 import { IntakeRouter } from "../lib/ingestion/IntakeRouter";
 import type { ExtractionResult } from "../lib/ingestion/types";
 import { runIngestionPipelineTests } from "../lib/ingestion/__tests__/fixtures.test";
+import { WAYNE_DENSCH_FIXTURE_TEXT } from "../ingestion/fixturesText";
 
 export interface InvoiceLineParsed {
   vendorItemNo: string;
@@ -63,10 +64,7 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
     setShowTestModal(true);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processUploadedFile = (file: File) => {
     setUploadedFileName(file.name);
     const isImg = file.type.startsWith("image/") || file.name.match(/\.(png|jpg|jpeg|webp)$/i);
     setFileType(isImg ? file.type || "image/png" : "application/pdf");
@@ -108,6 +106,12 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
     };
 
     reader.readAsText(file);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processUploadedFile(file);
   };
 
   // Inline Cell Edit Handler (Guarantees 100% Precision)
@@ -266,11 +270,13 @@ export default function InvoiceIntakeModal({ isOpen, onClose, onCommitInvoice }:
                       <div className="mt-2">
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             setUploadedFileName("Wayne_Densch_Invoice_523219.pdf");
-                            setStep("review");
+                            setFileType("application/pdf");
+                            const mockFile = new File([WAYNE_DENSCH_FIXTURE_TEXT], "Wayne_Densch_Invoice_523219.pdf", { type: "application/pdf" });
+                            processUploadedFile(mockFile);
                           }}
-                          className="px-3.5 py-1.5 rounded-lg bg-amber-800 text-amber-50 font-semibold text-xs hover:bg-amber-900 transition-all inline-flex items-center gap-1.5"
+                          className="px-3.5 py-1.5 rounded-lg bg-amber-800 text-amber-50 font-semibold text-xs hover:bg-amber-900 transition-all inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           Load Test Reference Invoice #523219 <ArrowRight size={14} />
                         </button>
